@@ -1,7 +1,7 @@
 extern mod rustc;
 
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
-use rustc::lib::llvm::ModuleRef;
+use rustc::lib::llvm::{ModuleRef, TypeRef};
 use rustc::lib::llvm::llvm;
 
 #[deriving(Eq)]
@@ -126,6 +126,15 @@ impl AheuiBlock {
             llvm::LLVMPositionBuilderAtEnd(self.bld, self.bb);
         }
         match self.h.cho {
+            cㅂ => match self.h.jong {
+                jㅇ => {
+                    a.call_rt(a.rt.gi, [], "gi_ret");
+                },
+                jㅎ => {
+                    a.call_rt(a.rt.gc, [], "gc_ret");
+                },
+                _ => fail!("unimplemented: %?", self.h.jong),
+            },
             cㅇ => {
             },
             cㅎ => {
@@ -158,12 +167,20 @@ impl AheuiBlock {
     }
 }
 
+struct AheuiRt {
+    gc: ValueRef,
+    pc: ValueRef,
+    gi: ValueRef,
+    pi: ValueRef,
+}
+
 struct Aheui {
     b: ~[~[~AheuiBlock]],
     cx: ContextRef,
     bld: BuilderRef,
     mf: ValueRef,
     md: ModuleRef,
+    rt: AheuiRt,
 }
 
 impl Aheui {
@@ -207,6 +224,19 @@ impl Aheui {
     }
 
     #[fixed_stack_segment]
+    fn call_rt(&self, f: ValueRef, args: &[ValueRef], n: &str) -> ValueRef {
+        do n.with_c_str |buf| {
+            unsafe {
+                llvm::LLVMBuildCall(
+                    self.bld, f, std::vec::raw::to_ptr(args),
+                    args.len() as std::libc::c_uint, buf
+                )
+            }
+        }
+    }
+
+
+    #[fixed_stack_segment]
     fn new(h: ~[~[Hangul]], md_name: &str, fn_name: &str) -> Aheui {
         let cx = unsafe { llvm::LLVMContextCreate() };
         let md = do md_name.with_c_str |buf| {
@@ -214,14 +244,53 @@ impl Aheui {
         };
         let bld = unsafe { llvm::LLVMCreateBuilderInContext(cx) };
 
+        let i32_ty = unsafe { llvm::LLVMInt32TypeInContext(cx) };
         let void_ty = unsafe { llvm::LLVMVoidTypeInContext(cx) };
-        let main_ty = unsafe {
-            llvm::LLVMFunctionType(
-                void_ty, std::ptr::null(), 0 as std::libc::c_uint, 0
-            )
-        };
+
+        #[fixed_stack_segment]
+        fn declare_fn(md: ModuleRef, n: &str, ty: TypeRef) -> ValueRef {
+            do n.with_c_str |buf| {
+                unsafe { llvm::LLVMGetOrInsertFunction(md, buf, ty) }
+            }
+        }
+
+        #[fixed_stack_segment]
+        fn fn_ty(rt: TypeRef, par: &[TypeRef]) -> TypeRef {
+            unsafe {
+                llvm::LLVMFunctionType(
+                    rt, std::vec::raw::to_ptr(par),
+                    par.len() as std::libc::c_uint, 0
+                )
+            }
+        }
+
+        let main_ty = fn_ty(void_ty, []);
         let mf = do fn_name.with_c_str |buf| {
             unsafe { llvm::LLVMAddFunction(md, buf, main_ty) }
+        };
+
+        // declare runtime functions
+        // extern "C" fn aheui_getchar() -> char
+        let gc_fn_ty = fn_ty(i32_ty, []);
+        let gc_fn = declare_fn(md, "aheui_getchar", gc_fn_ty);
+
+        // extern "C" fn aheui_putchar(c: char)
+        let pc_fn_ty = fn_ty(void_ty, [i32_ty]);
+        let pc_fn = declare_fn(md, "aheui_putchar", pc_fn_ty);
+
+        // extern "C" fn aheui_getint() -> i32
+        let gi_fn_ty = fn_ty(i32_ty, []);
+        let gi_fn = declare_fn(md, "aheui_getint", gi_fn_ty);
+
+        // extern "C" fn aheui_putint(i: i32)
+        let pi_fn_ty = fn_ty(void_ty, [i32_ty]);
+        let pi_fn = declare_fn(md, "aheui_putint", pi_fn_ty);
+
+        let rt = AheuiRt {
+            gc: gc_fn,
+            pc: pc_fn,
+            gi: gi_fn,
+            pi: pi_fn,
         };
 
         let mut ah = Aheui {
@@ -230,6 +299,7 @@ impl Aheui {
             bld: bld,
             mf: mf,
             md: md,
+            rt: rt,
         };
 
         let b_pos = "aheui_top";
@@ -284,7 +354,7 @@ fn main() {
     let md_name = "hello.ah";
     let fn_name = "aheui_main";
 
-    let code = "아하";
+    let code = "밯하";
     let code: ~[Hangul] = code.iter().map(Hangul::from_char).collect();
     let code = ~[code];
     let aheui = Aheui::new(code, md_name, fn_name);
