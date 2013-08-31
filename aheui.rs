@@ -1,5 +1,6 @@
 extern mod rustc;
 
+use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::llvm;
 
 #[deriving(Eq)]
@@ -86,15 +87,88 @@ impl Hangul {
     }
 }
 
-pub trait Aheui {
-    fn next_pos(&self, x: uint, y: uint, flow: Flow) -> (uint, uint);
+fn bb_name(x: uint, y: uint) -> ~str {
+    fmt!("aheui_bb_%u_%u", x, y)
 }
 
-impl Aheui for ~[~[Hangul]] {
+struct AheuiBlock {
+    h: Hangul,
+    x: uint,
+    y: uint,
+    cx: ContextRef,
+    bld: BuilderRef,
+    bb: BasicBlockRef,
+}
+
+impl AheuiBlock {
+    #[fixed_stack_segment]
+    fn new(
+        h: Hangul, x: uint, y: uint, cx: ContextRef,
+        bld: BuilderRef, main_fn: ValueRef
+    ) -> AheuiBlock {
+        let this_bb = do bb_name(x, y).with_c_str |buf| {
+            unsafe { llvm::LLVMAppendBasicBlockInContext(cx, main_fn, buf) }
+        };
+        AheuiBlock {
+            h: h,
+            x: x,
+            y: y,
+            cx: cx,
+            bld: bld,
+            bb: this_bb,
+        }
+    }
+
+    #[fixed_stack_segment]
+    fn gen_bb(&self, a: &Aheui) {
+        unsafe {
+            llvm::LLVMPositionBuilderAtEnd(self.bld, self.bb);
+        }
+        match self.h.cho {
+            cㅇ => {
+            },
+            cㅎ => {
+                unsafe {
+                    llvm::LLVMBuildRetVoid(self.bld);
+                }
+            },
+            _ => {
+                fail!("unimplemented: %?", self.h.cho);
+            },
+        }
+
+        let (nx, ny) = match self.h.jung {
+            ㅏ => {
+                a.next_pos(self.x, self.y, FlowRight)
+            },
+            ㅓ => {
+                a.next_pos(self.x, self.y, FlowLeft)
+            },
+            _ => {
+                fail!("unimplemented: %?", self.h.jung)
+            },
+        };
+        let dest_bb = a.get_bb(nx, ny);
+        unsafe {
+            if self.h.cho != cㅎ {
+                llvm::LLVMBuildBr(self.bld, dest_bb);
+            }
+        };
+    }
+}
+
+struct Aheui {
+    b: ~[~[~AheuiBlock]],
+    cx: ContextRef,
+    bld: BuilderRef,
+    mf: ValueRef,
+}
+
+impl Aheui {
     fn next_pos(&self, x: uint, y: uint, flow: Flow) -> (uint, uint) {
         match flow {
             FlowLeft | FlowRight => {
-                let len = self[y].len();
+                let len = self.b[y].len();
                 let next_x = if flow == FlowLeft {
                     (len + x - 1) % len
                 } else {
@@ -105,8 +179,8 @@ impl Aheui for ~[~[Hangul]] {
             FlowUp | FlowDown => {
                 if flow == FlowDown {
                     let ly = y + 1;
-                    let it = self.iter().enumerate().skip(ly);
-                    let it = it.chain(self.iter().enumerate().take(ly));
+                    let it = self.b.iter().enumerate().skip(ly);
+                    let it = it.chain(self.b.iter().enumerate().take(ly));
                     let mut it = it;
                     for (cur_y, line) in it {
                         if x < line.len() {
@@ -115,19 +189,66 @@ impl Aheui for ~[~[Hangul]] {
                     }
                     fail!("Failed to find next position");
                 } else {
-                    let ly = self.len() - y;
-                    let it = self.rev_iter().enumerate().skip(ly);
-                    let it = it.chain(self.rev_iter().enumerate().take(ly));
+                    let ly = self.b.len() - y;
+                    let it = self.b.rev_iter().enumerate().skip(ly);
+                    let it = it.chain(self.b.rev_iter().enumerate().take(ly));
                     let mut it = it;
                     for (cur_y, line) in it {
                         if x < line.len() {
-                            return (x, self.len() - 1 - cur_y);
+                            return (x, self.b.len() - 1 - cur_y);
                         }
                     }
                     fail!("Failed to find next position");
                 }
             }
         }
+    }
+
+    #[fixed_stack_segment]
+    fn new(
+        h: ~[~[Hangul]], cx: ContextRef, bld: BuilderRef, mf: ValueRef
+    ) -> Aheui {
+        let mut ah = Aheui {
+            b: ~[],
+            cx: cx,
+            bld: bld,
+            mf: mf
+        };
+
+        let b_pos = "aheui_top";
+        let main_bb = do b_pos.with_c_str |buf| {
+            unsafe { llvm::LLVMAppendBasicBlockInContext(cx, ah.mf, buf) }
+        };
+
+        for (y, line) in h.iter().enumerate() {
+            let mut bl = ~[];
+            for (x, hangul) in line.iter().enumerate() {
+                let block = ~AheuiBlock::new(*hangul, x, y, cx, bld, ah.mf);
+                bl.push(block);
+            }
+            ah.b.push(bl);
+        }
+
+        let start_bb = ah.get_bb(0, 0);
+        unsafe {
+            llvm::LLVMPositionBuilderAtEnd(bld, main_bb);
+            llvm::LLVMBuildBr(ah.bld, start_bb);
+        }
+
+        ah
+    }
+
+    #[fixed_stack_segment]
+    fn gen_llvm(&self) {
+        for bl in self.b.iter() {
+            for b in bl.iter() {
+                b.gen_bb(self);
+            }
+        }
+    }
+
+    fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef {
+        self.b[y][x].bb
     }
 }
 
@@ -153,14 +274,11 @@ fn main() {
         unsafe { llvm::LLVMAddFunction(md, buf, main_ty) }
     };
 
-    let b_pos = "top";
-    let main_bb = do b_pos.with_c_str |buf| {
-        unsafe { llvm::LLVMAppendBasicBlockInContext(cx, main_fn, buf) }
-    };
-    unsafe {
-        llvm::LLVMPositionBuilderAtEnd(bld, main_bb);
-        llvm::LLVMBuildRetVoid(bld);
-    }
+    let code = "아하";
+    let code: ~[Hangul] = code.iter().map(Hangul::from_char).collect();
+    let code = ~[code];
+    let aheui = Aheui::new(code, cx, bld, main_fn);
+    aheui.gen_llvm();
 
     let cpm = unsafe { llvm::LLVMCreatePassManager() };
 
@@ -196,37 +314,5 @@ mod test {
         assert!(joNone.val() == 0);
         assert!(jㄱ.val() == 2);
         assert!(jㄿ.val() == 9);
-    }
-
-    #[test]
-    fn test_next_pos() {
-        let map = [
-            "아희희아희",
-            "아희아희",
-            "아희희",
-        ];
-        let map = do map.map |&x| {
-            x.iter().map(Hangul::from_char).collect::<~[Hangul]>()
-        };
-
-        assert!(map.next_pos(0, 0, FlowLeft) == (4, 0));
-        assert!(map.next_pos(0, 0, FlowRight) == (1, 0));
-        assert!(map.next_pos(0, 0, FlowUp) == (0, 2));
-        assert!(map.next_pos(0, 0, FlowDown) == (0, 1));
-
-        assert!(map.next_pos(4, 0, FlowLeft) == (3, 0));
-        assert!(map.next_pos(4, 0, FlowRight) == (0, 0));
-        assert!(map.next_pos(4, 0, FlowUp) == (4, 0));
-        assert!(map.next_pos(4, 0, FlowDown) == (4, 0));
-
-        assert!(map.next_pos(3, 1, FlowLeft) == (2, 1));
-        assert!(map.next_pos(3, 1, FlowRight) == (0, 1));
-        assert!(map.next_pos(3, 1, FlowUp) == (3, 0));
-        assert!(map.next_pos(3, 1, FlowDown) == (3, 0));
-
-        assert!(map.next_pos(2, 2, FlowLeft) == (1, 2));
-        assert!(map.next_pos(2, 2, FlowRight) == (0, 2));
-        assert!(map.next_pos(2, 2, FlowUp) == (2, 1));
-        assert!(map.next_pos(2, 2, FlowDown) == (2, 0));
     }
 }
