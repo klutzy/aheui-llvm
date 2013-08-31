@@ -21,6 +21,23 @@ pub enum Jong {
     jㅌ, jㅍ, jㅎ
 }
 
+impl Jong {
+    fn val(&self) -> uint {
+        if *self == jㅇ || *self == jㅎ {
+            fail!("Jong::val(ㅇ or ㅎ)");
+        }
+
+        let map = [
+            0,
+            2, 4, 4, 2, 5, 5, 3, 5,
+            7, 9, 9, 7, 9, 9, 8, 4,
+            4, 6, 2, 4, 0, 3, 4, 3,
+            4, 4, 0,
+        ];
+        map[*self as uint]
+    }
+}
+
 #[deriving(Eq)]
 struct Hangul {
     cho: Cho,
@@ -91,5 +108,12 @@ mod test {
 
         assert!(Hangul::from_char('A') == Hangul::none());
         assert!(Hangul::from_char('☆') == Hangul::none());
+    }
+
+    #[test]
+    fn test_jong() {
+        assert!(joNone.val() == 0);
+        assert!(jㄱ.val() == 2);
+        assert!(jㄿ.val() == 9);
     }
 }
