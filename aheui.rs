@@ -1,6 +1,7 @@
 extern mod rustc;
 
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
+use rustc::lib::llvm::ModuleRef;
 use rustc::lib::llvm::llvm;
 
 #[deriving(Eq)]
@@ -162,6 +163,7 @@ struct Aheui {
     cx: ContextRef,
     bld: BuilderRef,
     mf: ValueRef,
+    md: ModuleRef,
 }
 
 impl Aheui {
@@ -205,14 +207,29 @@ impl Aheui {
     }
 
     #[fixed_stack_segment]
-    fn new(
-        h: ~[~[Hangul]], cx: ContextRef, bld: BuilderRef, mf: ValueRef
-    ) -> Aheui {
+    fn new(h: ~[~[Hangul]], md_name: &str, fn_name: &str) -> Aheui {
+        let cx = unsafe { llvm::LLVMContextCreate() };
+        let md = do md_name.with_c_str |buf| {
+            unsafe { llvm::LLVMModuleCreateWithNameInContext(buf, cx) }
+        };
+        let bld = unsafe { llvm::LLVMCreateBuilderInContext(cx) };
+
+        let void_ty = unsafe { llvm::LLVMVoidTypeInContext(cx) };
+        let main_ty = unsafe {
+            llvm::LLVMFunctionType(
+                void_ty, std::ptr::null(), 0 as std::libc::c_uint, 0
+            )
+        };
+        let mf = do fn_name.with_c_str |buf| {
+            unsafe { llvm::LLVMAddFunction(md, buf, main_ty) }
+        };
+
         let mut ah = Aheui {
             b: ~[],
             cx: cx,
             bld: bld,
-            mf: mf
+            mf: mf,
+            md: md,
         };
 
         let b_pos = "aheui_top";
@@ -250,6 +267,16 @@ impl Aheui {
     fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef {
         self.b[y][x].bb
     }
+
+    #[fixed_stack_segment]
+    fn print_module(&self, out_f: &str) {
+        let cpm = unsafe { llvm::LLVMCreatePassManager() };
+        do out_f.with_c_str |buf| {
+            unsafe {
+                llvm::LLVMRustPrintModule(cpm, self.md, buf)
+            }
+        };
+    }
 }
 
 #[fixed_stack_segment]
@@ -257,37 +284,14 @@ fn main() {
     let md_name = "hello.ah";
     let fn_name = "aheui_main";
 
-    let cx = unsafe { llvm::LLVMContextCreate() };
-    let md = do md_name.with_c_str |buf| {
-        unsafe { llvm::LLVMModuleCreateWithNameInContext(buf, cx) }
-    };
-    let bld = unsafe { llvm::LLVMCreateBuilderInContext(cx) };
-
-    let void_ty = unsafe { llvm::LLVMVoidTypeInContext(cx) };
-    let main_ty = unsafe {
-        llvm::LLVMFunctionType(
-            void_ty, std::ptr::null(), 0 as std::libc::c_uint, 0
-        )
-    };
-
-    let main_fn = do fn_name.with_c_str |buf| {
-        unsafe { llvm::LLVMAddFunction(md, buf, main_ty) }
-    };
-
     let code = "아하";
     let code: ~[Hangul] = code.iter().map(Hangul::from_char).collect();
     let code = ~[code];
-    let aheui = Aheui::new(code, cx, bld, main_fn);
+    let aheui = Aheui::new(code, md_name, fn_name);
     aheui.gen_llvm();
 
-    let cpm = unsafe { llvm::LLVMCreatePassManager() };
-
     let out_f = "hello.ll";
-    do out_f.with_c_str |buf| {
-        unsafe {
-            llvm::LLVMRustPrintModule(cpm, md, buf)
-        }
-    };
+    aheui.print_module(out_f);
 }
 
 #[cfg(test)]
