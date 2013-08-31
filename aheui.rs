@@ -162,10 +162,12 @@ fn main() {
         llvm::LLVMBuildRetVoid(bld);
     }
 
-    let out_f = "hello.bc";
+    let cpm = unsafe { llvm::LLVMCreatePassManager() };
+
+    let out_f = "hello.ll";
     do out_f.with_c_str |buf| {
         unsafe {
-            llvm::LLVMWriteBitcodeToFile(md, buf)
+            llvm::LLVMRustPrintModule(cpm, md, buf)
         }
     };
 }
