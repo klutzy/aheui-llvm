@@ -128,20 +128,6 @@ impl Aheui for ~[~[Hangul]] {
 }
 
 fn main() {
-    let hello_world = [
-        "밤밣따빠밣밟따뿌",
-        "빠맣파빨받밤뚜뭏",
-        "돋밬탕빠맣붏두붇",
-        "볻뫃박발뚷투뭏붖",
-        "뫃도뫃희멓뭏뭏붘",
-        "뫃봌토범더벌뿌뚜",
-        "뽑뽀멓멓더벓뻐뚠",
-        "뽀덩벐멓뻐덕더벅",
-    ];
-    let hello_world = do hello_world.map |&x| {
-        x.iter().map(Hangul::from_char).collect::<~[Hangul]>()
-    };
-    println(fmt!("%?", hello_world));
 }
 
 #[cfg(test)]
