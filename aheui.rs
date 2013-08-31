@@ -1,3 +1,7 @@
+extern mod rustc;
+
+use rustc::lib::llvm::llvm;
+
 #[deriving(Eq)]
 pub enum Cho {
     cㄱ, cㄲ, cㄴ, cㄷ, cㄸ, cㄹ, cㅁ, cㅂ,
@@ -127,7 +131,43 @@ impl Aheui for ~[~[Hangul]] {
     }
 }
 
+#[fixed_stack_segment]
 fn main() {
+    let md_name = "hello.ah";
+    let fn_name = "aheui_main";
+
+    let cx = unsafe { llvm::LLVMContextCreate() };
+    let md = do md_name.with_c_str |buf| {
+        unsafe { llvm::LLVMModuleCreateWithNameInContext(buf, cx) }
+    };
+    let bld = unsafe { llvm::LLVMCreateBuilderInContext(cx) };
+
+    let void_ty = unsafe { llvm::LLVMVoidTypeInContext(cx) };
+    let main_ty = unsafe {
+        llvm::LLVMFunctionType(
+            void_ty, std::ptr::null(), 0 as std::libc::c_uint, 0
+        )
+    };
+
+    let main_fn = do fn_name.with_c_str |buf| {
+        unsafe { llvm::LLVMAddFunction(md, buf, main_ty) }
+    };
+
+    let b_pos = "top";
+    let main_bb = do b_pos.with_c_str |buf| {
+        unsafe { llvm::LLVMAppendBasicBlockInContext(cx, main_fn, buf) }
+    };
+    unsafe {
+        llvm::LLVMPositionBuilderAtEnd(bld, main_bb);
+        llvm::LLVMBuildRetVoid(bld);
+    }
+
+    let out_f = "hello.bc";
+    do out_f.with_c_str |buf| {
+        unsafe {
+            llvm::LLVMWriteBitcodeToFile(md, buf)
+        }
+    };
 }
 
 #[cfg(test)]
