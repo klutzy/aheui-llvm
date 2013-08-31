@@ -39,6 +39,14 @@ impl Jong {
 }
 
 #[deriving(Eq)]
+pub enum Flow {
+    FlowLeft,
+    FlowRight,
+    FlowUp,
+    FlowDown,
+}
+
+#[deriving(Eq)]
 struct Hangul {
     cho: Cho,
     jung: Jung,
@@ -69,6 +77,51 @@ impl Hangul {
                 cho: std::cast::transmute(cho),
                 jung: std::cast::transmute(jung),
                 jong: std::cast::transmute(jong),
+            }
+        }
+    }
+}
+
+pub trait Aheui {
+    fn next_pos(&self, x: uint, y: uint, flow: Flow) -> (uint, uint);
+}
+
+impl Aheui for ~[~[Hangul]] {
+    fn next_pos(&self, x: uint, y: uint, flow: Flow) -> (uint, uint) {
+        match flow {
+            FlowLeft | FlowRight => {
+                let len = self[y].len();
+                let next_x = if flow == FlowLeft {
+                    (len + x - 1) % len
+                } else {
+                    (x + 1) % len
+                };
+                return (next_x, y);
+            }
+            FlowUp | FlowDown => {
+                if flow == FlowDown {
+                    let ly = y + 1;
+                    let it = self.iter().enumerate().skip(ly);
+                    let it = it.chain(self.iter().enumerate().take(ly));
+                    let mut it = it;
+                    for (cur_y, line) in it {
+                        if x < line.len() {
+                            return (x, cur_y);
+                        }
+                    }
+                    fail!("Failed to find next position");
+                } else {
+                    let ly = self.len() - y;
+                    let it = self.rev_iter().enumerate().skip(ly);
+                    let it = it.chain(self.rev_iter().enumerate().take(ly));
+                    let mut it = it;
+                    for (cur_y, line) in it {
+                        if x < line.len() {
+                            return (x, self.len() - 1 - cur_y);
+                        }
+                    }
+                    fail!("Failed to find next position");
+                }
             }
         }
     }
@@ -115,5 +168,37 @@ mod test {
         assert!(joNone.val() == 0);
         assert!(jㄱ.val() == 2);
         assert!(jㄿ.val() == 9);
+    }
+
+    #[test]
+    fn test_next_pos() {
+        let map = [
+            "아희희아희",
+            "아희아희",
+            "아희희",
+        ];
+        let map = do map.map |&x| {
+            x.iter().map(Hangul::from_char).collect::<~[Hangul]>()
+        };
+
+        assert!(map.next_pos(0, 0, FlowLeft) == (4, 0));
+        assert!(map.next_pos(0, 0, FlowRight) == (1, 0));
+        assert!(map.next_pos(0, 0, FlowUp) == (0, 2));
+        assert!(map.next_pos(0, 0, FlowDown) == (0, 1));
+
+        assert!(map.next_pos(4, 0, FlowLeft) == (3, 0));
+        assert!(map.next_pos(4, 0, FlowRight) == (0, 0));
+        assert!(map.next_pos(4, 0, FlowUp) == (4, 0));
+        assert!(map.next_pos(4, 0, FlowDown) == (4, 0));
+
+        assert!(map.next_pos(3, 1, FlowLeft) == (2, 1));
+        assert!(map.next_pos(3, 1, FlowRight) == (0, 1));
+        assert!(map.next_pos(3, 1, FlowUp) == (3, 0));
+        assert!(map.next_pos(3, 1, FlowDown) == (3, 0));
+
+        assert!(map.next_pos(2, 2, FlowLeft) == (1, 2));
+        assert!(map.next_pos(2, 2, FlowRight) == (0, 2));
+        assert!(map.next_pos(2, 2, FlowUp) == (2, 1));
+        assert!(map.next_pos(2, 2, FlowDown) == (2, 0));
     }
 }
