@@ -389,4 +389,37 @@ mod test {
         assert!(jㄱ.val() == 2);
         assert!(jㄿ.val() == 9);
     }
+
+    #[test]
+    fn test_next_pos() {
+        let map = [
+            "아희희아희",
+            "아희아희",
+            "아희희",
+        ];
+        let map = do map.map |&x| {
+            x.iter().map(Hangul::from_char).collect::<~[Hangul]>()
+        };
+        let map = Aheui::new(map, "dummy", "dummy_main");
+
+        assert!(map.next_pos(0, 0, FlowLeft) == (4, 0));
+        assert!(map.next_pos(0, 0, FlowRight) == (1, 0));
+        assert!(map.next_pos(0, 0, FlowUp) == (0, 2));
+        assert!(map.next_pos(0, 0, FlowDown) == (0, 1));
+
+        assert!(map.next_pos(4, 0, FlowLeft) == (3, 0));
+        assert!(map.next_pos(4, 0, FlowRight) == (0, 0));
+        assert!(map.next_pos(4, 0, FlowUp) == (4, 0));
+        assert!(map.next_pos(4, 0, FlowDown) == (4, 0));
+
+        assert!(map.next_pos(3, 1, FlowLeft) == (2, 1));
+        assert!(map.next_pos(3, 1, FlowRight) == (0, 1));
+        assert!(map.next_pos(3, 1, FlowUp) == (3, 0));
+        assert!(map.next_pos(3, 1, FlowDown) == (3, 0));
+
+        assert!(map.next_pos(2, 2, FlowLeft) == (1, 2));
+        assert!(map.next_pos(2, 2, FlowRight) == (0, 2));
+        assert!(map.next_pos(2, 2, FlowUp) == (2, 1));
+        assert!(map.next_pos(2, 2, FlowDown) == (2, 0));
+    }
 }
