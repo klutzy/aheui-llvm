@@ -1,5 +1,7 @@
 extern mod rustc;
 
+use std::libc::c_ulonglong;
+
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::{ModuleRef, TypeRef};
 use rustc::lib::llvm::llvm;
@@ -193,6 +195,7 @@ struct Aheui {
     mf: ValueRef,
     md: ModuleRef,
     rt: AheuiRt,
+    fl: ValueRef,
 }
 
 impl Aheui {
@@ -256,6 +259,7 @@ impl Aheui {
         };
         let bld = unsafe { llvm::LLVMCreateBuilderInContext(cx) };
 
+        let i8_ty = unsafe { llvm::LLVMInt8TypeInContext(cx) };
         let i32_ty = unsafe { llvm::LLVMInt32TypeInContext(cx) };
         let void_ty = unsafe { llvm::LLVMVoidTypeInContext(cx) };
 
@@ -320,9 +324,21 @@ impl Aheui {
             b.push(bl);
         }
 
-        let start_bb = b.get_bb(0, 0);
         unsafe {
             llvm::LLVMPositionBuilderAtEnd(bld, main_bb);
+        }
+
+        let fl = do "aheui_flow".with_c_str |buf| {
+            unsafe { llvm::LLVMBuildAlloca(bld, i8_ty, buf) }
+        };
+        // FlowRight = 1
+        unsafe {
+            let one_i8 = llvm::LLVMConstInt(i8_ty, 1 as c_ulonglong, 0);
+            llvm::LLVMBuildStore(bld, one_i8, fl);
+        }
+
+        let start_bb = b.get_bb(0, 0);
+        unsafe {
             llvm::LLVMBuildBr(bld, start_bb);
         }
 
@@ -333,6 +349,7 @@ impl Aheui {
             mf: mf,
             md: md,
             rt: rt,
+            fl: fl,
         }
     }
 
