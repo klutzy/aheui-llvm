@@ -149,23 +149,39 @@ impl AheuiBlock {
             },
         }
 
-        let (nx, ny) = match self.h.jung {
-            ㅏ => {
-                a.next_pos(self.x, self.y, FlowRight)
-            },
-            ㅓ => {
-                a.next_pos(self.x, self.y, FlowLeft)
+        #[fixed_stack_segment]
+        fn jmp(a: &Aheui, ab: &AheuiBlock, nx: uint, ny: uint) {
+            let dest_bb = a.b.get_bb(nx, ny);
+            unsafe {
+                if ab.h.cho != cㅎ {
+                    llvm::LLVMBuildBr(a.bld, dest_bb);
+                }
+            };
+        }
+
+        match self.h.jung {
+            ㅏ | ㅓ | ㅗ | ㅜ | ㅑ | ㅕ | ㅛ | ㅠ => {
+                let flow = match self.h.jung {
+                    ㅏ | ㅑ => FlowRight,
+                    ㅓ | ㅕ => FlowLeft,
+                    ㅗ | ㅛ => FlowUp,
+                    ㅜ | ㅠ => FlowDown,
+                    _ => fail!("???"),
+                };
+                let (nx, ny) = match self.h.jung {
+                    ㅏ | ㅓ | ㅗ | ㅜ => a.next_pos(self.x, self.y, flow),
+                    ㅑ | ㅕ | ㅛ | ㅠ => {
+                        let (nx, ny) = a.next_pos(self.x, self.y, flow);
+                        a.next_pos(nx, ny, flow)
+                    },
+                    _ => fail!("???"),
+                };
+                jmp(a, self, nx, ny);
             },
             _ => {
                 fail!("unimplemented: %?", self.h.jung)
             },
-        };
-        let dest_bb = a.b.get_bb(nx, ny);
-        unsafe {
-            if self.h.cho != cㅎ {
-                llvm::LLVMBuildBr(self.bld, dest_bb);
-            }
-        };
+        }
     }
 }
 
