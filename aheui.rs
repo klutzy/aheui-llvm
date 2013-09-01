@@ -351,16 +351,26 @@ impl Aheui {
 
 #[fixed_stack_segment]
 fn main() {
-    let md_name = "hello.ah";
+    let args = std::os::args();
+    let alen = args.len();
+    if alen != 2 {
+        println(fmt!("Usage: %s INPUT", args[0]));
+        return;
+    }
+
+    let md_name = args[1];
     let fn_name = "aheui_main";
 
-    let code = "밯하";
-    let code: ~[Hangul] = code.iter().map(Hangul::from_char).collect();
-    let code = ~[code];
+    let path = Path(md_name);
+    let code = std::io::read_whole_file_str(&path).unwrap();
+    let mut code_iter = do code.line_iter().map |line| {
+        line.iter().map(Hangul::from_char).collect::<~[Hangul]>()
+    };
+    let code = code_iter.collect();
     let aheui = Aheui::new(code, md_name, fn_name);
     aheui.gen_llvm();
 
-    let out_f = "hello.ll";
+    let out_f = md_name + ".ll";
     aheui.print_module(out_f);
 }
 
