@@ -204,6 +204,12 @@ impl AheuiMap for AheuiMapImpl {
     }
 }
 
+struct Types {
+    i8_ty: TypeRef,
+    i32_ty: TypeRef,
+    void_ty: TypeRef,
+}
+
 struct Aheui {
     b: AheuiMapImpl,
     cx: ContextRef,
@@ -212,6 +218,7 @@ struct Aheui {
     md: ModuleRef,
     rt: AheuiRt,
     fl: ValueRef,
+    ty: Types,
 }
 
 impl Aheui {
@@ -366,6 +373,11 @@ impl Aheui {
             md: md,
             rt: rt,
             fl: fl,
+            ty: Types {
+                i8_ty: i8_ty,
+                i32_ty: i32_ty,
+                void_ty: void_ty,
+            },
         }
     }
 
