@@ -143,6 +143,7 @@ impl AheuiBlock {
                 unsafe {
                     llvm::LLVMBuildRetVoid(self.bld);
                 }
+                return;
             },
             _ => {
                 fail!("unimplemented: %?", self.h.cho);
@@ -157,6 +158,16 @@ impl AheuiBlock {
                     llvm::LLVMBuildBr(a.bld, dest_bb);
                 }
             };
+        }
+
+        #[fixed_stack_segment]
+        fn set_fl(a: &Aheui, fl: Flow) {
+            unsafe {
+                let fl: int = std::cast::transmute(fl);
+                let fl = fl as c_ulonglong;
+                let fl_i8 = llvm::LLVMConstInt(a.ty.i8_ty, fl, 0);
+                llvm::LLVMBuildStore(a.bld, fl_i8, a.fl);
+            }
         }
 
         match self.h.jung {
@@ -176,6 +187,7 @@ impl AheuiBlock {
                     },
                     _ => fail!("???"),
                 };
+                set_fl(a, flow);
                 jmp(a, self, nx, ny);
             },
             _ => {
