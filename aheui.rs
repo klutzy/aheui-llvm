@@ -158,7 +158,7 @@ impl AheuiBlock {
                 fail!("unimplemented: %?", self.h.jung)
             },
         };
-        let dest_bb = a.get_bb(nx, ny);
+        let dest_bb = a.b.get_bb(nx, ny);
         unsafe {
             if self.h.cho != cㅎ {
                 llvm::LLVMBuildBr(self.bld, dest_bb);
@@ -174,8 +174,20 @@ struct AheuiRt {
     pi: ValueRef,
 }
 
+type AheuiMapImpl = ~[~[~AheuiBlock]];
+
+trait AheuiMap {
+    fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef;
+}
+
+impl AheuiMap for AheuiMapImpl {
+    fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef {
+        self[y][x].bb
+    }
+}
+
 struct Aheui {
-    b: ~[~[~AheuiBlock]],
+    b: AheuiMapImpl,
     cx: ContextRef,
     bld: BuilderRef,
     mf: ValueRef,
@@ -293,36 +305,35 @@ impl Aheui {
             pi: pi_fn,
         };
 
-        let mut ah = Aheui {
-            b: ~[],
+        let b_pos = "aheui_top";
+        let main_bb = do b_pos.with_c_str |buf| {
+            unsafe { llvm::LLVMAppendBasicBlockInContext(cx, mf, buf) }
+        };
+
+        let mut b = ~[];
+        for (y, line) in h.iter().enumerate() {
+            let mut bl = ~[];
+            for (x, hangul) in line.iter().enumerate() {
+                let block = ~AheuiBlock::new(*hangul, x, y, cx, bld, mf);
+                bl.push(block);
+            }
+            b.push(bl);
+        }
+
+        let start_bb = b.get_bb(0, 0);
+        unsafe {
+            llvm::LLVMPositionBuilderAtEnd(bld, main_bb);
+            llvm::LLVMBuildBr(bld, start_bb);
+        }
+
+        Aheui {
+            b: b,
             cx: cx,
             bld: bld,
             mf: mf,
             md: md,
             rt: rt,
-        };
-
-        let b_pos = "aheui_top";
-        let main_bb = do b_pos.with_c_str |buf| {
-            unsafe { llvm::LLVMAppendBasicBlockInContext(cx, ah.mf, buf) }
-        };
-
-        for (y, line) in h.iter().enumerate() {
-            let mut bl = ~[];
-            for (x, hangul) in line.iter().enumerate() {
-                let block = ~AheuiBlock::new(*hangul, x, y, cx, bld, ah.mf);
-                bl.push(block);
-            }
-            ah.b.push(bl);
         }
-
-        let start_bb = ah.get_bb(0, 0);
-        unsafe {
-            llvm::LLVMPositionBuilderAtEnd(bld, main_bb);
-            llvm::LLVMBuildBr(ah.bld, start_bb);
-        }
-
-        ah
     }
 
     #[fixed_stack_segment]
@@ -332,10 +343,6 @@ impl Aheui {
                 b.gen_bb(self);
             }
         }
-    }
-
-    fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef {
-        self.b[y][x].bb
     }
 
     #[fixed_stack_segment]
