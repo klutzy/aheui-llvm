@@ -366,10 +366,9 @@ impl Aheui {
         let fl = do "aheui_flow".with_c_str |buf| {
             unsafe { llvm::LLVMBuildAlloca(bld, i8_ty, buf) }
         };
-        // FlowRight = 1
         unsafe {
-            let one_i8 = llvm::LLVMConstInt(i8_ty, 1 as c_ulonglong, 0);
-            llvm::LLVMBuildStore(bld, one_i8, fl);
+            let fl_i8 = llvm::LLVMConstInt(i8_ty, FlowDown as c_ulonglong, 0);
+            llvm::LLVMBuildStore(bld, fl_i8, fl);
         }
 
         let start_bb = b.get_bb(0, 0);
