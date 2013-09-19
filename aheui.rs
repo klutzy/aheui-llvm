@@ -73,7 +73,8 @@ impl Hangul {
     fn from_char(c: char) -> Hangul {
         let c = c as uint;
         let ga = '가' as uint;
-        if (c < ga) {
+        let hih = '힣' as uint;
+        if (c < ga || c > hih) {
             return Hangul::none();
         }
         let c = c - ga;
