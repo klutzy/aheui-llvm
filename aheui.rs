@@ -1,6 +1,6 @@
 extern mod rustc;
 
-use std::libc::c_ulonglong;
+use std::libc::{c_uint, c_ulonglong};
 
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::{ModuleRef, TypeRef};
@@ -191,8 +191,30 @@ impl AheuiBlock {
                 set_fl(a, flow);
                 jmp(a, self, nx, ny);
             },
-            _ => {
+            ㅣ | ㅡ | ㅢ => {
                 fail!("unimplemented: %?", self.h.jung)
+            },
+            _ => {
+                let nps = [
+                    a.next_pos(self.x, self.y, FlowLeft),
+                    a.next_pos(self.x, self.y, FlowRight),
+                    a.next_pos(self.x, self.y, FlowUp),
+                    a.next_pos(self.x, self.y, FlowDown),
+                ].map(|&(nx, ny)| a.b.get_bb(nx, ny));
+
+                let r = do "aheui_flow_v".with_c_str |buf| {
+                    unsafe { llvm::LLVMBuildLoad(a.bld, a.fl, buf) }
+                };
+                let sw = unsafe {
+                    llvm::LLVMBuildSwitch(a.bld, r, nps[3], 3 as c_uint)
+                };
+                for (i, nbb) in nps.iter().take(3).enumerate() {
+                    unsafe {
+                        let j = i as c_ulonglong;
+                        let c = llvm::LLVMConstInt(a.ty.i8_ty, j, 0);
+                        llvm::LLVMAddCase(sw, c, *nbb);
+                    }
+                }
             },
         }
     }
