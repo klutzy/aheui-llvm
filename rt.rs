@@ -1,7 +1,7 @@
 #[no_mangle]
 extern fn aheui_getchar() -> char {
     println("fake aheui_getchar(): return 0");
-    0 as char
+    '\x00'
 }
 
 #[no_mangle]
@@ -12,7 +12,7 @@ extern "C" fn aheui_putchar(c: char) {
 #[no_mangle]
 extern "C" fn aheui_getint() -> i32 {
     println("fake aheui_getint(): return 0");
-    0
+    0i32
 }
 
 #[no_mangle]
