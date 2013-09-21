@@ -20,6 +20,11 @@ extern "C" fn aheui_putint(i: i32) {
     print(fmt!("%d", i as int));
 }
 
+#[no_mangle]
+extern "C" fn aheui_trace(x: i32, y: i32) {
+    debug!("trace(%d, %d)", x as int, y as int);
+}
+
 extern "C" {
     fn aheui_main();
 }

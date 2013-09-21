@@ -124,10 +124,24 @@ impl AheuiBlock {
     }
 
     #[fixed_stack_segment]
+    fn aheui_trace(&self, a: &Aheui) {
+        let (x, y) = (self.x, self.y);
+        let (x, y) = (x as c_ulonglong, y as c_ulonglong);
+        let (x, y) = unsafe {
+            let x = llvm::LLVMConstInt(a.ty.i32_ty, x, 0);
+            let y = llvm::LLVMConstInt(a.ty.i32_ty, y, 0);
+            (x, y)
+        };
+        let args = [x, y];
+        a.call_rt(a.rt.tr, args, "");
+    }
+
+    #[fixed_stack_segment]
     fn gen_bb(&self, a: &Aheui) {
         unsafe {
             llvm::LLVMPositionBuilderAtEnd(self.bld, self.bb);
         }
+        self.aheui_trace(a);
         match self.h.cho {
             cㅂ => match self.h.jong {
                 jㅇ => {
@@ -225,6 +239,7 @@ struct AheuiRt {
     pc: ValueRef,
     gi: ValueRef,
     pi: ValueRef,
+    tr: ValueRef,
 }
 
 type AheuiMapImpl = ~[~[~AheuiBlock]];
@@ -360,11 +375,16 @@ impl Aheui {
         let pi_fn_ty = fn_ty(void_ty, [i32_ty]);
         let pi_fn = declare_fn(md, "aheui_putint", pi_fn_ty);
 
+        // extern "C" fn aheui_trace(x: i32, y: i32)
+        let tr_fn_ty = fn_ty(void_ty, [i32_ty, i32_ty]);
+        let tr_fn = declare_fn(md, "aheui_trace", tr_fn_ty);
+
         let rt = AheuiRt {
             gc: gc_fn,
             pc: pc_fn,
             gi: gi_fn,
             pi: pi_fn,
+            tr: tr_fn,
         };
 
         let b_pos = "aheui_top";
