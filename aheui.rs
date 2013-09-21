@@ -4,6 +4,7 @@ use std::libc::{c_uint, c_ulonglong};
 
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::{ModuleRef, TypeRef};
+use rustc::lib::llvm::True;
 use rustc::lib::llvm::llvm;
 
 #[deriving(Eq)]
@@ -185,6 +186,56 @@ impl AheuiBlock {
             }
         }
 
+        #[fixed_stack_segment]
+        fn set_next(a: &Aheui, _ab: &AheuiBlock, nf: Jung) {
+            let j = match nf {
+                ㅣ => a.nfs[0],
+                ㅡ => a.nfs[1],
+                ㅢ => a.nfs[2],
+                _ => fail!("???"),
+            };
+            let v = do "aheui_flow_orig".with_c_str |buf| {
+                unsafe { llvm::LLVMBuildLoad(a.bld, a.fl, buf) }
+            };
+            unsafe {
+                do "tmp".with_c_str |b| {
+                    let c0 = llvm::LLVMConstInt(a.ty.i8_ty, 0 as c_ulonglong, 0);
+                    let tmp = ~[c0, v];
+                    let nv = do tmp.as_imm_buf |tmp, n| {
+                        llvm::LLVMBuildGEP(a.bld, j, tmp, n as c_uint, b)
+                    };
+                    let nv = do "aheui_flow_nv".with_c_str |buf| {
+                        llvm::LLVMBuildLoad(a.bld, nv, buf)
+                    };
+                    llvm::LLVMBuildStore(a.bld, nv, a.fl);
+                }
+            }
+        }
+
+        #[fixed_stack_segment]
+        fn jmp_next(a: &Aheui, ab: &AheuiBlock) {
+            let nps = [
+                a.next_pos(ab.x, ab.y, FlowLeft),
+                a.next_pos(ab.x, ab.y, FlowRight),
+                a.next_pos(ab.x, ab.y, FlowUp),
+                a.next_pos(ab.x, ab.y, FlowDown),
+            ].map(|&(nx, ny)| a.b.get_bb(nx, ny));
+
+            let r = do "aheui_flow_v".with_c_str |buf| {
+                unsafe { llvm::LLVMBuildLoad(a.bld, a.fl, buf) }
+            };
+            let sw = unsafe {
+                llvm::LLVMBuildSwitch(a.bld, r, nps[3], 3 as c_uint)
+            };
+            for (i, nbb) in nps.iter().take(3).enumerate() {
+                unsafe {
+                    let j = i as c_ulonglong;
+                    let c = llvm::LLVMConstInt(a.ty.i8_ty, j, 0);
+                    llvm::LLVMAddCase(sw, c, *nbb);
+                }
+            }
+        }
+
         match self.h.jung {
             ㅏ | ㅓ | ㅗ | ㅜ | ㅑ | ㅕ | ㅛ | ㅠ => {
                 let flow = match self.h.jung {
@@ -206,29 +257,11 @@ impl AheuiBlock {
                 jmp(a, self, nx, ny);
             },
             ㅣ | ㅡ | ㅢ => {
-                fail!("unimplemented: %?", self.h.jung)
+                set_next(a, self, self.h.jung);
+                jmp_next(a, self);
             },
             _ => {
-                let nps = [
-                    a.next_pos(self.x, self.y, FlowLeft),
-                    a.next_pos(self.x, self.y, FlowRight),
-                    a.next_pos(self.x, self.y, FlowUp),
-                    a.next_pos(self.x, self.y, FlowDown),
-                ].map(|&(nx, ny)| a.b.get_bb(nx, ny));
-
-                let r = do "aheui_flow_v".with_c_str |buf| {
-                    unsafe { llvm::LLVMBuildLoad(a.bld, a.fl, buf) }
-                };
-                let sw = unsafe {
-                    llvm::LLVMBuildSwitch(a.bld, r, nps[3], 3 as c_uint)
-                };
-                for (i, nbb) in nps.iter().take(3).enumerate() {
-                    unsafe {
-                        let j = i as c_ulonglong;
-                        let c = llvm::LLVMConstInt(a.ty.i8_ty, j, 0);
-                        llvm::LLVMAddCase(sw, c, *nbb);
-                    }
-                }
+                jmp_next(a, self);
             },
         }
     }
@@ -268,6 +301,7 @@ struct Aheui {
     md: ModuleRef,
     rt: AheuiRt,
     fl: ValueRef,
+    nfs: ~[ValueRef],
     ty: Types,
 }
 
@@ -414,6 +448,30 @@ impl Aheui {
             llvm::LLVMBuildStore(bld, fl_i8, fl);
         }
 
+        let i8_arr_ty = unsafe { llvm::LLVMArrayType(i8_ty, 4 as c_uint) };
+        let nfs = unsafe {
+            let js = [
+                ("\x01\x00\x02\x03", "fl0"),
+                ("\x00\x01\x03\x02", "fl1"),
+                ("\x01\x00\x03\x02", "fl2"),
+            ];
+            do js.map |&(j, n)| {
+                do j.as_imm_buf |jb, l| {
+                    let jb = jb as *i8;
+                    let l = l as c_uint;
+                    let v = do n.with_c_str |n| {
+                        llvm::LLVMAddGlobal(md, i8_arr_ty, n)
+                    };
+                    llvm::LLVMSetGlobalConstant(v, True);
+                    let c = llvm::LLVMConstStringInContext(cx, jb, l, True);
+                    llvm::LLVMSetInitializer(v, c);
+                    v
+                }
+            }
+        };
+
+        debug!("nfs: %?", nfs);
+
         let start_bb = b.get_bb(0, 0);
         unsafe {
             llvm::LLVMBuildBr(bld, start_bb);
@@ -427,6 +485,7 @@ impl Aheui {
             md: md,
             rt: rt,
             fl: fl,
+            nfs: nfs,
             ty: Types {
                 i8_ty: i8_ty,
                 i32_ty: i32_ty,
