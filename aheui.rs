@@ -301,8 +301,21 @@ struct Aheui {
     md: ModuleRef,
     rt: AheuiRt,
     fl: ValueRef,
+    cur: ValueRef,
     nfs: ~[ValueRef],
     ty: Types,
+}
+
+#[fixed_stack_segment]
+fn new_var(bld: BuilderRef, v: u8, ty: TypeRef, name: &str) -> ValueRef {
+    let var = do name.with_c_str |buf| {
+        unsafe { llvm::LLVMBuildAlloca(bld, ty, buf) }
+    };
+    unsafe {
+        let c = llvm::LLVMConstInt(ty, v as c_ulonglong, 0);
+        llvm::LLVMBuildStore(bld, c, var);
+    }
+    var
 }
 
 impl Aheui {
@@ -356,7 +369,6 @@ impl Aheui {
             }
         }
     }
-
 
     #[fixed_stack_segment]
     fn new(h: ~[~[Hangul]], md_name: &str, fn_name: &str) -> Aheui {
@@ -440,13 +452,8 @@ impl Aheui {
             llvm::LLVMPositionBuilderAtEnd(bld, main_bb);
         }
 
-        let fl = do "aheui_flow".with_c_str |buf| {
-            unsafe { llvm::LLVMBuildAlloca(bld, i8_ty, buf) }
-        };
-        unsafe {
-            let fl_i8 = llvm::LLVMConstInt(i8_ty, FlowDown as c_ulonglong, 0);
-            llvm::LLVMBuildStore(bld, fl_i8, fl);
-        }
+        let fl = new_var(bld, FlowDown as u8, i8_ty, "aheui_flow");
+        let cur = new_var(bld, joNone as u8, i8_ty, "aheui_cur");
 
         let i8_arr_ty = unsafe { llvm::LLVMArrayType(i8_ty, 4 as c_uint) };
         let nfs = unsafe {
@@ -485,6 +492,7 @@ impl Aheui {
             md: md,
             rt: rt,
             fl: fl,
+            cur: cur,
             nfs: nfs,
             ty: Types {
                 i8_ty: i8_ty,
