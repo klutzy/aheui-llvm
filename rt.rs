@@ -8,8 +8,10 @@ local_data_key!(key_rt: AheuiRt)
 
 #[no_mangle]
 extern fn aheui_getchar() -> char {
-    println("fake aheui_getchar(): return 0");
-    '\x00'
+    let stdin = std::io::stdin();
+    print("input an unicode character: ");
+    let line = stdin.read_line();
+    line.char_at(0)
 }
 
 #[no_mangle]
@@ -19,8 +21,11 @@ extern "C" fn aheui_putchar(c: char) {
 
 #[no_mangle]
 extern "C" fn aheui_getint() -> i32 {
-    println("fake aheui_getint(): return 0");
-    0i32
+    let stdin = std::io::stdin();
+    print("input an integer: ");
+    let line = stdin.read_line();
+    println(fmt!("line: %?", line));
+    from_str(line).unwrap()
 }
 
 #[no_mangle]
