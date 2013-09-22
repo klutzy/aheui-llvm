@@ -211,6 +211,12 @@ impl AheuiBlock {
                 let ncur = unsafe { llvm::LLVMConstInt(a.ty.i8_ty, j, 0) };
                 unsafe { llvm::LLVMBuildStore(a.bld, ncur, a.cur); }
             },
+            cㅆ => {
+                let v = a.call_rt(a.rt.po, [cur], "");
+                let j = self.h.jong as c_ulonglong;
+                let ncur = unsafe { llvm::LLVMConstInt(a.ty.i8_ty, j, 0) };
+                a.call_rt(a.rt.pu, [ncur, v], "");
+            },
             cㅇ => {
             },
             cㅌ => {
