@@ -171,7 +171,7 @@ impl AheuiBlock {
                     let ret = a.call_rt(a.rt.po, [cur], "");
                     a.call_rt(a.rt.pc, [ret], "");
                 },
-                _ => fail!("unimplemented: %?", self.h.jong),
+                _ => fail!("Illegal parameter: %?", self.h.jong),
             },
             cㅇ => {
             },
