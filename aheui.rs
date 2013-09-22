@@ -273,6 +273,8 @@ struct AheuiRt {
     gi: ValueRef,
     pi: ValueRef,
     tr: ValueRef,
+    pu: ValueRef,
+    po: ValueRef,
 }
 
 type AheuiMapImpl = ~[~[~AheuiBlock]];
@@ -425,12 +427,22 @@ impl Aheui {
         let tr_fn_ty = fn_ty(void_ty, [i32_ty, i32_ty]);
         let tr_fn = declare_fn(md, "aheui_trace", tr_fn_ty);
 
+        // extern "C" fn aheui_push(idx: i8, v: i32)
+        let pu_fn_ty = fn_ty(void_ty, [i8_ty, i32_ty]);
+        let pu_fn = declare_fn(md, "aheui_push", pu_fn_ty);
+
+        // extern "C" fn aheui_pop(idx: i8) -> i32
+        let po_fn_ty = fn_ty(i32_ty, [i8_ty]);
+        let po_fn = declare_fn(md, "aheui_pop", po_fn_ty);
+
         let rt = AheuiRt {
             gc: gc_fn,
             pc: pc_fn,
             gi: gi_fn,
             pi: pi_fn,
             tr: tr_fn,
+            pu: pu_fn,
+            po: po_fn,
         };
 
         let b_pos = "aheui_top";
