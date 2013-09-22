@@ -144,6 +144,19 @@ impl AheuiBlock {
         }
         self.aheui_trace(a);
         match self.h.cho {
+            cㅁ => match self.h.jong {
+                jㅇ => {
+                    let cur = a.load(a.cur, "cur");
+                    let ret = a.call_rt(a.rt.po, [cur], "");
+                    a.call_rt(a.rt.pi, [ret], "");
+                },
+                jㅎ => {
+                    let cur = a.load(a.cur, "cur");
+                    let ret = a.call_rt(a.rt.po, [cur], "");
+                    a.call_rt(a.rt.pc, [ret], "");
+                },
+                _ => fail!("Illegal parameter: %?", self.h.jong),
+            },
             cㅂ => {
                 let ret = match self.h.jong {
                     jㅇ => {
@@ -159,19 +172,6 @@ impl AheuiBlock {
                 };
                 let cur = a.load(a.cur, "cur");
                 a.call_rt(a.rt.pu, [cur, ret], "");
-            },
-            cㅁ => match self.h.jong {
-                jㅇ => {
-                    let cur = a.load(a.cur, "cur");
-                    let ret = a.call_rt(a.rt.po, [cur], "");
-                    a.call_rt(a.rt.pi, [ret], "");
-                },
-                jㅎ => {
-                    let cur = a.load(a.cur, "cur");
-                    let ret = a.call_rt(a.rt.po, [cur], "");
-                    a.call_rt(a.rt.pc, [ret], "");
-                },
-                _ => fail!("Illegal parameter: %?", self.h.jong),
             },
             cㅇ => {
             },
