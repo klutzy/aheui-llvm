@@ -144,18 +144,21 @@ impl AheuiBlock {
         }
         self.aheui_trace(a);
         match self.h.cho {
-            cㅂ => match self.h.jong {
-                jㅇ => {
-                    let ret = a.call_rt(a.rt.gi, [], "ret");
-                    let cur = a.load(a.cur, "cur");
-                    a.call_rt(a.rt.pu, [cur, ret], "");
-                },
-                jㅎ => {
-                    let ret = a.call_rt(a.rt.gc, [], "ret");
-                    let cur = a.load(a.cur, "cur");
-                    a.call_rt(a.rt.pu, [cur, ret], "");
-                },
-                _ => fail!("unimplemented: %?", self.h.jong),
+            cㅂ => {
+                let ret = match self.h.jong {
+                    jㅇ => {
+                        a.call_rt(a.rt.gi, [], "ret")
+                    },
+                    jㅎ => {
+                        a.call_rt(a.rt.gc, [], "ret")
+                    },
+                    _ => {
+                        let j = self.h.jong.val() as c_ulonglong;
+                        unsafe { llvm::LLVMConstInt(a.ty.i32_ty, j, 0) }
+                    }
+                };
+                let cur = a.load(a.cur, "cur");
+                a.call_rt(a.rt.pu, [cur, ret], "");
             },
             cㅁ => match self.h.jong {
                 jㅇ => {
