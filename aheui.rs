@@ -157,6 +157,19 @@ impl AheuiBlock {
                 },
                 _ => fail!("unimplemented: %?", self.h.jong),
             },
+            cㅁ => match self.h.jong {
+                jㅇ => {
+                    let cur = a.load(a.cur, "cur");
+                    let ret = a.call_rt(a.rt.po, [cur], "");
+                    a.call_rt(a.rt.pi, [ret], "");
+                },
+                jㅎ => {
+                    let cur = a.load(a.cur, "cur");
+                    let ret = a.call_rt(a.rt.po, [cur], "");
+                    a.call_rt(a.rt.pc, [ret], "");
+                },
+                _ => fail!("unimplemented: %?", self.h.jong),
+            },
             cㅇ => {
             },
             cㅎ => {
