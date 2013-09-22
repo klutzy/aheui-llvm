@@ -143,15 +143,46 @@ impl AheuiBlock {
             llvm::LLVMPositionBuilderAtEnd(self.bld, self.bb);
         }
         self.aheui_trace(a);
+        let cur = a.load(a.cur, "cur");
         match self.h.cho {
+            cㄴ => {
+                let v1 = a.call_rt(a.rt.po, [cur], "");
+                let v2 = a.call_rt(a.rt.po, [cur], "");
+                let ret = do "ret".with_c_str |buf| {
+                    unsafe { llvm::LLVMBuildUDiv(a.bld, v2, v1, buf) }
+                };
+                a.call_rt(a.rt.pu, [cur, ret], "");
+            },
+            cㄷ => {
+                let v1 = a.call_rt(a.rt.po, [cur], "");
+                let v2 = a.call_rt(a.rt.po, [cur], "");
+                let ret = do "ret".with_c_str |buf| {
+                    unsafe { llvm::LLVMBuildAdd(a.bld, v1, v2, buf) }
+                };
+                a.call_rt(a.rt.pu, [cur, ret], "");
+            },
+            cㄸ => {
+                let v1 = a.call_rt(a.rt.po, [cur], "");
+                let v2 = a.call_rt(a.rt.po, [cur], "");
+                let ret = do "ret".with_c_str |buf| {
+                    unsafe { llvm::LLVMBuildMul(a.bld, v1, v2, buf) }
+                };
+                a.call_rt(a.rt.pu, [cur, ret], "");
+            },
+            cㄹ => {
+                let v1 = a.call_rt(a.rt.po, [cur], "");
+                let v2 = a.call_rt(a.rt.po, [cur], "");
+                let ret = do "ret".with_c_str |buf| {
+                    unsafe { llvm::LLVMBuildURem(a.bld, v2, v1, buf) }
+                };
+                a.call_rt(a.rt.pu, [cur, ret], "");
+            },
             cㅁ => match self.h.jong {
                 jㅇ => {
-                    let cur = a.load(a.cur, "cur");
                     let ret = a.call_rt(a.rt.po, [cur], "");
                     a.call_rt(a.rt.pi, [ret], "");
                 },
                 jㅎ => {
-                    let cur = a.load(a.cur, "cur");
                     let ret = a.call_rt(a.rt.po, [cur], "");
                     a.call_rt(a.rt.pc, [ret], "");
                 },
@@ -170,10 +201,17 @@ impl AheuiBlock {
                         unsafe { llvm::LLVMConstInt(a.ty.i32_ty, j, 0) }
                     }
                 };
-                let cur = a.load(a.cur, "cur");
                 a.call_rt(a.rt.pu, [cur, ret], "");
             },
             cㅇ => {
+            },
+            cㅌ => {
+                let v1 = a.call_rt(a.rt.po, [cur], "");
+                let v2 = a.call_rt(a.rt.po, [cur], "");
+                let ret = do "ret".with_c_str |buf| {
+                    unsafe { llvm::LLVMBuildSub(a.bld, v2, v1, buf) }
+                };
+                a.call_rt(a.rt.pu, [cur, ret], "");
             },
             cㅎ => {
                 unsafe {
