@@ -147,16 +147,12 @@ impl AheuiBlock {
             cㅂ => match self.h.jong {
                 jㅇ => {
                     let ret = a.call_rt(a.rt.gi, [], "ret");
-                    let cur = do "cur".with_c_str |buf| {
-                        unsafe { llvm::LLVMBuildLoad(a.bld, a.cur, buf) }
-                    };
+                    let cur = a.load(a.cur, "cur");
                     a.call_rt(a.rt.pu, [cur, ret], "");
                 },
                 jㅎ => {
                     let ret = a.call_rt(a.rt.gc, [], "ret");
-                    let cur = do "cur".with_c_str |buf| {
-                        unsafe { llvm::LLVMBuildLoad(a.bld, a.cur, buf) }
-                    };
+                    let cur = a.load(a.cur, "cur");
                     a.call_rt(a.rt.pu, [cur, ret], "");
                 },
                 _ => fail!("unimplemented: %?", self.h.jong),
@@ -202,19 +198,16 @@ impl AheuiBlock {
                 ㅢ => a.nfs[2],
                 _ => fail!("???"),
             };
-            let v = do "aheui_flow_orig".with_c_str |buf| {
-                unsafe { llvm::LLVMBuildLoad(a.bld, a.fl, buf) }
-            };
+            let v = a.load(a.fl, "aheui_flow_orig");
             unsafe {
                 do "tmp".with_c_str |b| {
-                    let c0 = llvm::LLVMConstInt(a.ty.i8_ty, 0 as c_ulonglong, 0);
+                    let z = 0 as c_ulonglong;
+                    let c0 = llvm::LLVMConstInt(a.ty.i8_ty, z, 0);
                     let tmp = ~[c0, v];
                     let nv = do tmp.as_imm_buf |tmp, n| {
                         llvm::LLVMBuildGEP(a.bld, j, tmp, n as c_uint, b)
                     };
-                    let nv = do "aheui_flow_nv".with_c_str |buf| {
-                        llvm::LLVMBuildLoad(a.bld, nv, buf)
-                    };
+                    let nv = a.load(nv, "aheui_flow_nv");
                     llvm::LLVMBuildStore(a.bld, nv, a.fl);
                 }
             }
@@ -229,9 +222,7 @@ impl AheuiBlock {
                 a.next_pos(ab.x, ab.y, FlowDown),
             ].map(|&(nx, ny)| a.b.get_bb(nx, ny));
 
-            let r = do "aheui_flow_v".with_c_str |buf| {
-                unsafe { llvm::LLVMBuildLoad(a.bld, a.fl, buf) }
-            };
+            let r = a.load(a.fl, "aheui_flow_v");
             let sw = unsafe {
                 llvm::LLVMBuildSwitch(a.bld, r, nps[3], 3 as c_uint)
             };
@@ -365,6 +356,13 @@ impl Aheui {
                     fail!("Failed to find next position");
                 }
             }
+        }
+    }
+
+    #[fixed_stack_segment]
+    fn load(&self, val: ValueRef, name: &str) -> ValueRef {
+        do name.with_c_str |buf| {
+            unsafe { llvm::LLVMBuildLoad(self.bld, val, buf) }
         }
     }
 
