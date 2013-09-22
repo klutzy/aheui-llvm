@@ -203,6 +203,9 @@ impl AheuiBlock {
                 };
                 a.call_rt(a.rt.pu, [cur, ret], "");
             },
+            cㅃ => {
+                a.call_rt(a.rt.du, [cur], "");
+            },
             cㅇ => {
             },
             cㅌ => {
@@ -212,6 +215,9 @@ impl AheuiBlock {
                     unsafe { llvm::LLVMBuildSub(a.bld, v2, v1, buf) }
                 };
                 a.call_rt(a.rt.pu, [cur, ret], "");
+            },
+            cㅍ => {
+                a.call_rt(a.rt.sw, [cur], "");
             },
             cㅎ => {
                 unsafe {
@@ -328,6 +334,8 @@ struct AheuiRt {
     tr: ValueRef,
     pu: ValueRef,
     po: ValueRef,
+    du: ValueRef,
+    sw: ValueRef,
 }
 
 type AheuiMapImpl = ~[~[~AheuiBlock]];
@@ -495,6 +503,14 @@ impl Aheui {
         let po_fn_ty = fn_ty(i32_ty, [i8_ty]);
         let po_fn = declare_fn(md, "aheui_pop", po_fn_ty);
 
+        // extern "C" fn aheui_dup(idx: i8)
+        let du_fn_ty = fn_ty(void_ty, [i8_ty]);
+        let du_fn = declare_fn(md, "aheui_dup", du_fn_ty);
+
+        // extern "C" fn aheui_swap(idx: i8)
+        let sw_fn_ty = fn_ty(void_ty, [i8_ty]);
+        let sw_fn = declare_fn(md, "aheui_swap", sw_fn_ty);
+
         let rt = AheuiRt {
             gc: gc_fn,
             pc: pc_fn,
@@ -503,6 +519,8 @@ impl Aheui {
             tr: tr_fn,
             pu: pu_fn,
             po: po_fn,
+            du: du_fn,
+            sw: sw_fn,
         };
 
         let b_pos = "aheui_top";

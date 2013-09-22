@@ -71,6 +71,53 @@ extern "C" fn aheui_pop(idx: i8) -> i32 {
     }
 }
 
+#[no_mangle]
+extern "C" fn aheui_dup(idx: i8) {
+    do local_data::get_mut(key_rt) |ar| {
+        let ar = ar.unwrap();
+        match idx {
+            27 => fail!("Aheui extension is not supported."),
+            21 => {
+                let n = ar.dqs[idx][0];
+                ar.dqs[idx].unshift(n);
+            },
+            _ => {
+                let n = ar.dqs[idx][ar.dqs[idx].len() - 1];
+                ar.dqs[idx].push(n)
+            },
+        }
+        debug!("aheui_dup: stack[%d]: %?", idx as int, ar.dqs[idx]);
+    }
+}
+
+#[no_mangle]
+extern "C" fn aheui_swap(idx: i8) {
+    do local_data::get_mut(key_rt) |ar| {
+        let ar = ar.unwrap();
+        match idx {
+            27 => fail!("Aheui extension is not supported."),
+            21 => {
+                let len = ar.dqs[idx].len();
+                assert!(len >= 2);
+                let m = ar.dqs[idx][0];
+                let n = ar.dqs[idx][1];
+                ar.dqs[idx][0] = n;
+                ar.dqs[idx][1] = m;
+            },
+            _ => {
+                let len = ar.dqs[idx].len();
+                assert!(len >= 2);
+                let m = ar.dqs[idx][len - 2];
+                let n = ar.dqs[idx][len - 1];
+                ar.dqs[idx][len - 2] = n;
+                ar.dqs[idx][len - 1] = m;
+            },
+        }
+        debug!("aheui_swap: stack[%d]: %?", idx as int, ar.dqs[idx]);
+    }
+}
+
+
 extern "C" {
     fn aheui_main();
 }
