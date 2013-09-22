@@ -177,16 +177,17 @@ impl AheuiBlock {
                 };
                 a.call_rt(a.rt.pu, [cur, ret], "");
             },
-            cㅁ => match self.h.jong {
-                jㅇ => {
-                    let ret = a.call_rt(a.rt.po, [cur], "");
-                    a.call_rt(a.rt.pi, [ret], "");
-                },
-                jㅎ => {
-                    let ret = a.call_rt(a.rt.po, [cur], "");
-                    a.call_rt(a.rt.pc, [ret], "");
-                },
-                _ => fail!("Illegal parameter: %?", self.h.jong),
+            cㅁ => {
+                let ret = a.call_rt(a.rt.po, [cur], "");
+                match self.h.jong {
+                    jㅇ => {
+                        a.call_rt(a.rt.pi, [ret], "");
+                    },
+                    jㅎ => {
+                        a.call_rt(a.rt.pc, [ret], "");
+                    },
+                    _ => {},
+                }
             },
             cㅂ => {
                 let ret = match self.h.jong {
