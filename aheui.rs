@@ -146,10 +146,18 @@ impl AheuiBlock {
         match self.h.cho {
             cㅂ => match self.h.jong {
                 jㅇ => {
-                    a.call_rt(a.rt.gi, [], "gi_ret");
+                    let ret = a.call_rt(a.rt.gi, [], "ret");
+                    let cur = do "cur".with_c_str |buf| {
+                        unsafe { llvm::LLVMBuildLoad(a.bld, a.cur, buf) }
+                    };
+                    a.call_rt(a.rt.pu, [cur, ret], "");
                 },
                 jㅎ => {
-                    a.call_rt(a.rt.gc, [], "gc_ret");
+                    let ret = a.call_rt(a.rt.gc, [], "ret");
+                    let cur = do "cur".with_c_str |buf| {
+                        unsafe { llvm::LLVMBuildLoad(a.bld, a.cur, buf) }
+                    };
+                    a.call_rt(a.rt.pu, [cur, ret], "");
                 },
                 _ => fail!("unimplemented: %?", self.h.jong),
             },
