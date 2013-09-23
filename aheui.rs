@@ -218,7 +218,11 @@ impl AheuiBlock {
                 let ncur = unsafe { llvm::LLVMConstInt(a.ty.i8_ty, j, 0) };
                 a.call_rt(a.rt.pu, [ncur, v], "");
             },
-            cㅇ => {
+            cㅈ => {
+                fail!("unimplemented: %?", self.h.cho);
+            },
+            cㅊ => {
+                fail!("unimplemented: %?", self.h.cho);
             },
             cㅌ => {
                 let v1 = a.call_rt(a.rt.po, [cur], "");
@@ -237,8 +241,8 @@ impl AheuiBlock {
                 }
                 return;
             },
-            _ => {
-                fail!("unimplemented: %?", self.h.cho);
+            cㄱ | cㄲ | cㅇ | cㅉ | cㅋ | cNone => {
+                // nothing
             },
         }
 
