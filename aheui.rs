@@ -4,6 +4,7 @@ use std::libc::{c_uint, c_ulonglong};
 
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::{ModuleRef, TypeRef};
+use rustc::lib::llvm::IntULE;
 use rustc::lib::llvm::True;
 use rustc::lib::llvm::llvm;
 
@@ -219,7 +220,18 @@ impl AheuiBlock {
                 a.call_rt(a.rt.pu, [ncur, v], "");
             },
             cㅈ => {
-                fail!("unimplemented: %?", self.h.cho);
+                let v1 = a.call_rt(a.rt.po, [cur], "");
+                let v2 = a.call_rt(a.rt.po, [cur], "");
+                let op = IntULE as c_uint;
+                let cmp = do "cmp".with_c_str |buf| {
+                    unsafe { llvm::LLVMBuildICmp(a.bld, op, v1, v2, buf) }
+                };
+                let ret = do "ret".with_c_str |buf| {
+                    unsafe {
+                        llvm::LLVMBuildZExt(a.bld, cmp, a.ty.i32_ty, buf)
+                    }
+                };
+                a.call_rt(a.rt.pu, [cur, ret], "");
             },
             cㅊ => {
                 fail!("unimplemented: %?", self.h.cho);
