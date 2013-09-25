@@ -61,6 +61,7 @@ struct Hangul {
     cho: Cho,
     jung: Jung,
     jong: Jong,
+    c: char,
 }
 
 impl Hangul {
@@ -69,25 +70,27 @@ impl Hangul {
             cho: cNone,
             jung: juNone,
             jong: joNone,
+            c: '?',
         }
     }
 
     fn from_char(c: char) -> Hangul {
-        let c = c as uint;
+        let u = c as uint;
         let ga = '가' as uint;
         let hih = '힣' as uint;
-        if (c < ga || c > hih) {
+        if (u < ga || u > hih) {
             return Hangul::none();
         }
-        let c = c - ga;
-        let cho = c / 28 / 21;
-        let jung = (c / 28) % 21;
-        let jong = c % 28;
+        let u = u - ga;
+        let cho = u / 28 / 21;
+        let jung = (u / 28) % 21;
+        let jong = u % 28;
         unsafe {
             Hangul {
                 cho: std::cast::transmute(cho),
                 jung: std::cast::transmute(jung),
                 jong: std::cast::transmute(jong),
+                c: c,
             }
         }
     }
@@ -134,7 +137,10 @@ impl AheuiBlock {
             let y = llvm::LLVMConstInt(a.ty.i32_ty, y, 0);
             (x, y)
         };
-        let args = [x, y];
+        let h = a.b.get_hangul(self.x, self.y);
+        let c = h.c as c_ulonglong;
+        let c = unsafe { llvm::LLVMConstInt(a.ty.i32_ty, c, 0) };
+        let args = [x, y, c];
         a.call_rt(a.rt.tr, args, "");
     }
 
@@ -370,11 +376,16 @@ type AheuiMapImpl = ~[~[~AheuiBlock]];
 
 trait AheuiMap {
     fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef;
+    fn get_hangul(&self, x: uint, y: uint) -> Hangul;
 }
 
 impl AheuiMap for AheuiMapImpl {
     fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef {
         self[y][x].bb
+    }
+
+    fn get_hangul(&self, x: uint, y: uint) -> Hangul {
+        self[y][x].h
     }
 }
 
@@ -519,8 +530,8 @@ impl Aheui {
         let pi_fn_ty = fn_ty(void_ty, [i32_ty]);
         let pi_fn = declare_fn(md, "aheui_putint", pi_fn_ty);
 
-        // extern "C" fn aheui_trace(x: i32, y: i32)
-        let tr_fn_ty = fn_ty(void_ty, [i32_ty, i32_ty]);
+        // extern "C" fn aheui_trace(x: i32, y: i32, c: char)
+        let tr_fn_ty = fn_ty(void_ty, [i32_ty, i32_ty, i32_ty]);
         let tr_fn = declare_fn(md, "aheui_trace", tr_fn_ty);
 
         // extern "C" fn aheui_push(idx: i8, v: i32)

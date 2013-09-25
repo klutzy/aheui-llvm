@@ -30,12 +30,13 @@ extern "C" fn aheui_getint() -> i32 {
 
 #[no_mangle]
 extern "C" fn aheui_putint(i: i32) {
+    debug!("aheui_putint(%?)", i);
     print(fmt!("%d", i as int));
 }
 
 #[no_mangle]
-extern "C" fn aheui_trace(x: i32, y: i32) {
-    debug!("trace(%d, %d)", x as int, y as int);
+extern "C" fn aheui_trace(x: i32, y: i32, c: char) {
+    debug!("trace(%c: %d, %d)", c, x as int, y as int);
 }
 
 #[no_mangle]
