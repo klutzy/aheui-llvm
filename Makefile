@@ -18,17 +18,17 @@ rt: rt.rs
 
 
 # example usage
-$(HELLO): rtmain.rs rt $(AHEUI) libhello.aheui.so
-	$(RUSTC) -o $@ $< -L .
+$(HELLO): rtmain.rs rt $(AHEUI) libREADME.so
+	$(RUSTC) -o $@ $< -L . --link-args "-L. -lREADME"
 
-libhello.aheui.so: hello.aheui.o
+libREADME.so: README.o
 	ld -shared -o $@ $<
 
-hello.aheui.o: hello.aheui.ll
+README.o: README.ll
 	$(LLC) -filetype=obj -relocation-model=pic -o $@ $<
 
-hello.aheui.ll: hello.aheui $(AHEUI)
-	./$(AHEUI) hello.aheui
+README.ll: README $(AHEUI)
+	./$(AHEUI) $<
 
 
 .PHONY: clean
