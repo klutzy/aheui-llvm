@@ -5,11 +5,21 @@ LLC?=llc
 
 .SUFFIXES: .aheui .o .ll .rs
 
-.PHONY: all
-all: $(HELLO)
 
-$(HELLO): rtmain.rs rt.rs $(AHEUI) libhello.aheui.so
-	$(RUSTC) rt.rs && $(RUSTC) -o $@ rtmain.rs -L .
+.PHONY: all
+all: $(AHEUI)
+
+$(AHEUI): aheui.rs
+	$(RUSTC) -o $@ $<
+
+.PHONY: rt
+rt: rt.rs
+	$(RUSTC) rt.rs
+
+
+# example usage
+$(HELLO): rtmain.rs rt $(AHEUI) libhello.aheui.so
+	$(RUSTC) -o $@ $< -L .
 
 libhello.aheui.so: hello.aheui.o
 	ld -shared -o $@ $<
@@ -20,8 +30,6 @@ hello.aheui.o: hello.aheui.ll
 hello.aheui.ll: hello.aheui $(AHEUI)
 	./$(AHEUI) hello.aheui
 
-$(AHEUI): aheui.rs
-	$(RUSTC) -o $@ $<
 
 .PHONY: clean
 clean:
