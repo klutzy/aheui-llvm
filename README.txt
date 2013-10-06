@@ -4,7 +4,7 @@ Rust 언어로 짜여져 있으며, 예제 런타임 라이브러리 역시 Rust
 이 프로그램의 사용 방법은 다음과 같습니다.
 
 -   `make`를 하면 `aheui`가 빌드됩니다.
--   `aheui README`를 하면 `README.ll`가 생성됩니다.
+-   `./aheui -o README.ll README.txt`로 `README.ll` 파일을 얻습니다.
 -   `make rt`로 `librt-####-0.0.so` 런타임 라이브러리를 얻습니다.
 -   `rustc -o hello rtmain.rs -L . --link-args "-L. -lREADME"`를 하면
     `hello` 실행 파일이 나옵니다.

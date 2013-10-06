@@ -29,8 +29,8 @@ libREADME.so: README.o
 README.o: README.ll
 	$(LLC) -filetype=obj -relocation-model=pic -o $@ $<
 
-README.ll: README $(AHEUI)
-	./$(AHEUI) $<
+README.ll: README.txt $(AHEUI)
+	./$(AHEUI) -o $@ $<
 
 .PHONY: clean
 clean:
