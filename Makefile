@@ -13,8 +13,10 @@ $(AHEUI): aheui.rs
 	$(RUSTC) -o $@ $<
 
 .PHONY: rt
-rt: rt.rs
-	$(RUSTC) rt.rs
+rt: librt.dummy
+
+librt.dummy: rt.rs
+	$(RUSTC) rt.rs && touch librt.dummy
 
 
 # example usage
@@ -30,7 +32,6 @@ README.o: README.ll
 README.ll: README $(AHEUI)
 	./$(AHEUI) $<
 
-
 .PHONY: clean
 clean:
-	rm -f $(AHEUI) $(HELLO) *.o *.ll *.so
+	rm -f $(AHEUI) $(HELLO) *.o *.ll *.so *.dummy
