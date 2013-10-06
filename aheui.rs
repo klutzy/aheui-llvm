@@ -11,21 +11,21 @@ use rustc::lib::llvm::IntULE;
 use rustc::lib::llvm::True;
 use rustc::lib::llvm::llvm;
 
-#[deriving(Eq)]
+#[deriving(Eq, FromPrimitive)]
 pub enum Cho {
     cㄱ, cㄲ, cㄴ, cㄷ, cㄸ, cㄹ, cㅁ, cㅂ,
     cㅃ, cㅅ, cㅆ, cㅇ, cㅈ, cㅉ, cㅊ, cㅋ,
     cㅌ, cㅍ, cㅎ, cNone
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, FromPrimitive)]
 pub enum Jung {
     ㅏ, ㅐ, ㅑ, ㅒ, ㅓ, ㅔ, ㅕ, ㅖ,
     ㅗ, ㅘ, ㅙ, ㅚ, ㅛ, ㅜ, ㅝ, ㅞ,
     ㅟ, ㅠ, ㅡ, ㅢ, ㅣ, juNone
 }
 
-#[deriving(Eq)]
+#[deriving(Eq, FromPrimitive)]
 pub enum Jong {
     joNone,
     jㄱ, jㄲ, jㄳ, jㄴ, jㄵ, jㄶ, jㄷ, jㄹ,
@@ -88,13 +88,11 @@ impl Hangul {
         let cho = u / 28 / 21;
         let jung = (u / 28) % 21;
         let jong = u % 28;
-        unsafe {
-            Hangul {
-                cho: std::cast::transmute(cho),
-                jung: std::cast::transmute(jung),
-                jong: std::cast::transmute(jong),
-                c: c,
-            }
+        Hangul {
+            cho: std::num::from_uint(cho).unwrap(),
+            jung: std::num::from_uint(jung).unwrap(),
+            jong: std::num::from_uint(jong).unwrap(),
+            c: c,
         }
     }
 }
@@ -279,9 +277,8 @@ impl AheuiBlock {
 
         #[fixed_stack_segment]
         fn set_fl(a: &Aheui, fl: Flow) {
+            let fl = fl as c_ulonglong;
             unsafe {
-                let fl: int = std::cast::transmute(fl);
-                let fl = fl as c_ulonglong;
                 let fl_i8 = llvm::LLVMConstInt(a.ty.i8_ty, fl, 0);
                 llvm::LLVMBuildStore(a.bld, fl_i8, a.fl);
             }
