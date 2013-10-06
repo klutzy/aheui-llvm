@@ -1,6 +1,9 @@
+extern mod extra;
 extern mod rustc;
 
 use std::libc::{c_uint, c_ulonglong};
+
+use extra::getopts;
 
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::{ModuleRef, TypeRef};
@@ -651,29 +654,56 @@ impl Aheui {
     }
 }
 
+fn print_usage(prog: &str) {
+    println!("Usage: {} [OPTIONS] INPUT", prog);
+    println!("Options:");
+    println!("\t-o [OUTPUT]");
+    println!("\t-h");
+}
+
 #[fixed_stack_segment]
 fn main() {
     let args = std::os::args();
-    let alen = args.len();
-    if alen != 2 {
-        println(fmt!("Usage: %s INPUT", args[0]));
+
+    let opts = ~[
+        getopts::optopt("o"),
+        getopts::optflag("h"),
+    ];
+    let matches = match getopts::getopts(args.slice_from(1), opts) {
+        Ok(a) => a,
+        Err(e) => fail2!(e.to_err_msg()),
+    };
+
+    if matches.opt_present("h") {
+        print_usage(args[0]);
         return;
     }
 
-    let md_name = args[1];
+    let in_fn: &str = if !matches.free.is_empty() {
+        matches.free[0].clone()
+    } else {
+        print_usage(args[0]);
+        return;
+    };
+
+    let out_fn = in_fn + ".ll";
+    let out_fn = match matches.opt_str("o") {
+        Some(o) => o,
+        None => out_fn,
+    };
+
     let fn_name = "aheui_main";
 
-    let path = Path(md_name);
+    let path = Path(in_fn);
     let code = std::io::read_whole_file_str(&path).unwrap();
     let mut code_iter = do code.line_iter().map |line| {
         line.iter().map(Hangul::from_char).collect::<~[Hangul]>()
     };
     let code = code_iter.collect();
-    let aheui = Aheui::new(code, md_name, fn_name);
+    let aheui = Aheui::new(code, in_fn, fn_name);
     aheui.gen_llvm();
 
-    let out_f = md_name + ".ll";
-    aheui.print_module(out_f);
+    aheui.print_module(out_fn);
 }
 
 #[cfg(test)]
