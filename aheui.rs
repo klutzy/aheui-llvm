@@ -390,6 +390,7 @@ impl AheuiMap for AheuiMapImpl {
 }
 
 struct Types {
+    i1_ty: TypeRef,
     i8_ty: TypeRef,
     i32_ty: TypeRef,
     void_ty: TypeRef,
@@ -404,6 +405,7 @@ struct Aheui {
     rt: AheuiRt,
     fl: ValueRef,
     cur: ValueRef,
+    comp: ValueRef,
     nfs: ~[ValueRef],
     ty: Types,
 }
@@ -487,6 +489,7 @@ impl Aheui {
         };
         let bld = unsafe { llvm::LLVMCreateBuilderInContext(cx) };
 
+        let i1_ty = unsafe { llvm::LLVMInt1TypeInContext(cx) };
         let i8_ty = unsafe { llvm::LLVMInt8TypeInContext(cx) };
         let i32_ty = unsafe { llvm::LLVMInt32TypeInContext(cx) };
         let void_ty = unsafe { llvm::LLVMVoidTypeInContext(cx) };
@@ -583,6 +586,7 @@ impl Aheui {
 
         let fl = new_var(bld, FlowDown as u8, i8_ty, "aheui_flow");
         let cur = new_var(bld, joNone as u8, i8_ty, "aheui_cur");
+        let comp = new_var(bld, 0, i1_ty, "aheui_comp");
 
         let i8_arr_ty = unsafe { llvm::LLVMArrayType(i8_ty, 4 as c_uint) };
         let nfs = unsafe {
@@ -622,8 +626,10 @@ impl Aheui {
             rt: rt,
             fl: fl,
             cur: cur,
+            comp: comp,
             nfs: nfs,
             ty: Types {
+                i1_ty: i1_ty,
                 i8_ty: i8_ty,
                 i32_ty: i32_ty,
                 void_ty: void_ty,
