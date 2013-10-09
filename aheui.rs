@@ -1,3 +1,5 @@
+#[feature(globs)];
+
 extern mod extra;
 extern mod rustc;
 

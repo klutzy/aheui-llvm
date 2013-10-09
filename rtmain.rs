@@ -1,3 +1,5 @@
+#[feature(globs)];
+
 extern mod rt;
 use rt::*;
 
