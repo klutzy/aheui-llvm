@@ -662,7 +662,8 @@ impl Aheui {
 fn print_usage(prog: &str) {
     println!("Usage: {} [OPTIONS] INPUT", prog);
     println!("Options:");
-    println!("\t-o [OUTPUT]");
+    println!("\t-o [OUTPUT] (default to [INPUT].ll)");
+    println!("\t-m [OUTPUT] (default to aheui_main)");
     println!("\t-h");
 }
 
