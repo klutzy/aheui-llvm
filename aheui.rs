@@ -672,6 +672,7 @@ fn main() {
 
     let opts = ~[
         getopts::optopt("o"),
+        getopts::optopt("m"),
         getopts::optflag("h"),
     ];
     let matches = match getopts::getopts(args.slice_from(1), opts) {
@@ -697,7 +698,10 @@ fn main() {
         None => out_fn,
     };
 
-    let fn_name = "aheui_main";
+    let fn_name = match matches.opt_str("m") {
+        Some(m) => m,
+        None => ~"aheui_main",
+    };
 
     let path = Path(in_fn);
     let code = std::io::read_whole_file_str(&path).unwrap();
