@@ -153,6 +153,11 @@ impl AheuiBlock {
             llvm::LLVMPositionBuilderAtEnd(self.bld, self.bb);
         }
         self.aheui_trace(a);
+
+        let f = 0;
+        let comp_init = unsafe { llvm::LLVMConstInt(a.ty.i1_ty, f, 0) };
+        unsafe { llvm::LLVMBuildStore(a.bld, comp_init, a.comp); }
+
         let cur = a.load(a.cur, "cur");
         match self.h.cho {
             cㄴ => {
