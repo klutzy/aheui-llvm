@@ -297,51 +297,6 @@ impl AheuiBlock {
             },
         }
 
-        #[fixed_stack_segment]
-        fn set_next(a: &Aheui, _ab: &AheuiBlock, nf: Jung) {
-            let j = match nf {
-                ㅣ => a.nfs[0],
-                ㅡ => a.nfs[1],
-                ㅢ => a.nfs[2],
-                _ => fail!("???"),
-            };
-            let v = a.load(a.fl, "aheui_flow_orig");
-            unsafe {
-                do "tmp".with_c_str |b| {
-                    let z = 0 as c_ulonglong;
-                    let c0 = llvm::LLVMConstInt(a.ty.i8_ty, z, 0);
-                    let tmp = ~[c0, v];
-                    let nv = do tmp.as_imm_buf |tmp, n| {
-                        llvm::LLVMBuildGEP(a.bld, j, tmp, n as c_uint, b)
-                    };
-                    let nv = a.load(nv, "aheui_flow_nv");
-                    llvm::LLVMBuildStore(a.bld, nv, a.fl);
-                }
-            }
-        }
-
-        #[fixed_stack_segment]
-        fn jmp_next(a: &Aheui, ab: &AheuiBlock) {
-            let nps = [
-                a.next_pos(ab.x, ab.y, FlowLeft),
-                a.next_pos(ab.x, ab.y, FlowRight),
-                a.next_pos(ab.x, ab.y, FlowUp),
-                a.next_pos(ab.x, ab.y, FlowDown),
-            ].map(|&(nx, ny)| a.b.get_bb(nx, ny));
-
-            let r = a.load(a.fl, "aheui_flow_v");
-            let sw = unsafe {
-                llvm::LLVMBuildSwitch(a.bld, r, nps[3], 3 as c_uint)
-            };
-            for (i, nbb) in nps.iter().take(3).enumerate() {
-                unsafe {
-                    let j = i as c_ulonglong;
-                    let c = llvm::LLVMConstInt(a.ty.i8_ty, j, 0);
-                    llvm::LLVMAddCase(sw, c, *nbb);
-                }
-            }
-        }
-
         let comp = a.load(a.comp, "comp_v");
         match self.h.jung {
             ㅏ | ㅓ | ㅗ | ㅜ | ㅑ | ㅕ | ㅛ | ㅠ => {
@@ -377,13 +332,45 @@ impl AheuiBlock {
                     fail!("unimplemented: %?", self.h.cho);
                 }
 
-                match self.h.jung {
-                    ㅣ | ㅡ | ㅢ => {
-                        set_next(a, self, self.h.jung);
-                    },
-                    _ => {},
+                let j = match self.h.jung {
+                    ㅣ => a.nfs[1],
+                    ㅡ => a.nfs[2],
+                    ㅢ => a.nfs[3],
+                    _ => a.nfs[0],
+                };
+
+                let v = a.load(a.fl, "aheui_flow_orig");
+                unsafe {
+                    do "tmp".with_c_str |b| {
+                        let z = 0 as c_ulonglong;
+                        let c0 = llvm::LLVMConstInt(a.ty.i8_ty, z, 0);
+                        let tmp = ~[c0, v];
+                        let nv = do tmp.as_imm_buf |tmp, n| {
+                            llvm::LLVMBuildGEP(a.bld, j, tmp, n as c_uint, b)
+                        };
+                        let nv = a.load(nv, "aheui_flow_nv");
+                        llvm::LLVMBuildStore(a.bld, nv, a.fl);
+                    }
                 }
-                jmp_next(a, self);
+
+                let nps = [
+                    a.next_pos(self.x, self.y, FlowLeft),
+                    a.next_pos(self.x, self.y, FlowRight),
+                    a.next_pos(self.x, self.y, FlowUp),
+                    a.next_pos(self.x, self.y, FlowDown),
+                ].map(|&(nx, ny)| a.b.get_bb(nx, ny));
+
+                let r = a.load(a.fl, "aheui_flow_v");
+                let sw = unsafe {
+                    llvm::LLVMBuildSwitch(a.bld, r, nps[3], 3 as c_uint)
+                };
+                for (i, nbb) in nps.iter().take(3).enumerate() {
+                    unsafe {
+                        let j = i as c_ulonglong;
+                        let c = llvm::LLVMConstInt(a.ty.i8_ty, j, 0);
+                        llvm::LLVMAddCase(sw, c, *nbb);
+                    }
+                }
             },
         }
     }
@@ -620,9 +607,10 @@ impl Aheui {
         let i8_arr_ty = unsafe { llvm::LLVMArrayType(i8_ty, 4 as c_uint) };
         let nfs = unsafe {
             let js = [
-                ("\x01\x00\x02\x03", "fl0"),
-                ("\x00\x01\x03\x02", "fl1"),
-                ("\x01\x00\x03\x02", "fl2"),
+                ("\x00\x01\x02\x03", "fl0"),
+                ("\x01\x00\x02\x03", "fl1"),
+                ("\x00\x01\x03\x02", "fl2"),
+                ("\x01\x00\x03\x02", "fl3"),
             ];
             do js.map |&(j, n)| {
                 do j.as_imm_buf |jb, l| {
