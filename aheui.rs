@@ -135,9 +135,8 @@ impl AheuiBlock {
         h: Hangul, x: uint, y: uint, cx: ContextRef,
         bld: BuilderRef, main_fn: ValueRef
     ) -> AheuiBlock {
-        let this_bb = do format!("aheui_bb_{:u}_{:u}", x, y).with_c_str |buf| {
-            unsafe { llvm::LLVMAppendBasicBlockInContext(cx, main_fn, buf) }
-        };
+        let name = format!("aheui_bb_{:u}_{:u}", x, y);
+        let this_bb = Aheui::append_bb(cx, main_fn, name);
         AheuiBlock {
             h: h,
             x: x,
@@ -498,6 +497,13 @@ impl Aheui {
     }
 
     #[fixed_stack_segment]
+    fn append_bb(cx: ContextRef, f: ValueRef, name: &str) -> BasicBlockRef {
+        do name.with_c_str |buf| {
+            unsafe { llvm::LLVMAppendBasicBlockInContext(cx, f, buf) }
+        }
+    }
+
+    #[fixed_stack_segment]
     fn new(h: ~[~[Hangul]], md_name: &str, fn_name: &str) -> Aheui {
         let cx = unsafe { llvm::LLVMContextCreate() };
         let md = do md_name.with_c_str |buf| {
@@ -581,10 +587,7 @@ impl Aheui {
             sw: sw_fn,
         };
 
-        let b_pos = "aheui_top";
-        let main_bb = do b_pos.with_c_str |buf| {
-            unsafe { llvm::LLVMAppendBasicBlockInContext(cx, mf, buf) }
-        };
+        let main_bb = Aheui::append_bb(cx, mf, "aheui_top");
 
         let mut b = ~[];
         for (y, line) in h.iter().enumerate() {
