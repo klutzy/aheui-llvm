@@ -70,6 +70,16 @@ impl Flow {
             FlowDown => FlowUp,
         }
     }
+
+    fn from_jung(jung: Jung) -> Option<Flow> {
+        match jung {
+            ㅏ | ㅑ => Some(FlowRight),
+            ㅓ | ㅕ => Some(FlowLeft),
+            ㅗ | ㅛ => Some(FlowUp),
+            ㅜ | ㅠ => Some(FlowDown),
+            _ => None,
+        }
+    }
 }
 
 #[deriving(Eq)]
@@ -288,25 +298,6 @@ impl AheuiBlock {
         }
 
         #[fixed_stack_segment]
-        fn jmp(a: &Aheui, ab: &AheuiBlock, nx: uint, ny: uint) {
-            let dest_bb = a.b.get_bb(nx, ny);
-            unsafe {
-                if ab.h.cho != cㅎ {
-                    llvm::LLVMBuildBr(a.bld, dest_bb);
-                }
-            };
-        }
-
-        #[fixed_stack_segment]
-        fn set_fl(a: &Aheui, fl: Flow) {
-            let fl = fl as c_ulonglong;
-            unsafe {
-                let fl_i8 = llvm::LLVMConstInt(a.ty.i8_ty, fl, 0);
-                llvm::LLVMBuildStore(a.bld, fl_i8, a.fl);
-            }
-        }
-
-        #[fixed_stack_segment]
         fn set_next(a: &Aheui, _ab: &AheuiBlock, nf: Jung) {
             let j = match nf {
                 ㅣ => a.nfs[0],
@@ -351,36 +342,47 @@ impl AheuiBlock {
             }
         }
 
-        // TODO: flow rework
-        if self.h.cho == cㅊ {
-            fail!("unimplemented: %?", self.h.cho);
-        }
-
+        let comp = a.load(a.comp, "comp_v");
         match self.h.jung {
             ㅏ | ㅓ | ㅗ | ㅜ | ㅑ | ㅕ | ㅛ | ㅠ => {
-                let flow = match self.h.jung {
-                    ㅏ | ㅑ => FlowRight,
-                    ㅓ | ㅕ => FlowLeft,
-                    ㅗ | ㅛ => FlowUp,
-                    ㅜ | ㅠ => FlowDown,
-                    _ => fail!("???"),
+                let flow = Flow::from_jung(self.h.jung).unwrap();
+
+                let next_pos = |flow| {
+                    match self.h.jung {
+                        ㅏ | ㅓ | ㅗ | ㅜ => a.next_pos(self.x, self.y, flow),
+                        ㅑ | ㅕ | ㅛ | ㅠ => {
+                            let (nx, ny) = a.next_pos(self.x, self.y, flow);
+                            a.next_pos(nx, ny, flow)
+                        },
+                        _ => fail!("???"),
+                    }
                 };
-                let (nx, ny) = match self.h.jung {
-                    ㅏ | ㅓ | ㅗ | ㅜ => a.next_pos(self.x, self.y, flow),
-                    ㅑ | ㅕ | ㅛ | ㅠ => {
-                        let (nx, ny) = a.next_pos(self.x, self.y, flow);
-                        a.next_pos(nx, ny, flow)
-                    },
-                    _ => fail!("???"),
+                let (nx, ny) = next_pos(flow);
+                let (rx, ry) = next_pos(flow.reverse());
+                let dest_bb = a.b.get_bb(nx, ny);
+                let r_dest_bb = a.b.get_bb(rx, ry);
+
+                let fl = flow as c_ulonglong;
+                unsafe {
+                    let fl_i8 = llvm::LLVMConstInt(a.ty.i8_ty, fl, 0);
+                    llvm::LLVMBuildStore(a.bld, fl_i8, a.fl);
+                }
+                unsafe {
+                    llvm::LLVMBuildCondBr(a.bld, comp, r_dest_bb, dest_bb);
                 };
-                set_fl(a, flow);
-                jmp(a, self, nx, ny);
-            },
-            ㅣ | ㅡ | ㅢ => {
-                set_next(a, self, self.h.jung);
-                jmp_next(a, self);
             },
             _ => {
+                // TODO: flow rework
+                if self.h.cho == cㅊ {
+                    fail!("unimplemented: %?", self.h.cho);
+                }
+
+                match self.h.jung {
+                    ㅣ | ㅡ | ㅢ => {
+                        set_next(a, self, self.h.jung);
+                    },
+                    _ => {},
+                }
                 jmp_next(a, self);
             },
         }
