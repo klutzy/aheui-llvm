@@ -127,6 +127,7 @@ struct AheuiBlock {
     cx: ContextRef,
     bld: BuilderRef,
     bb: BasicBlockRef,
+    name: ~str,
 }
 
 impl AheuiBlock {
@@ -144,6 +145,7 @@ impl AheuiBlock {
             cx: cx,
             bld: bld,
             bb: this_bb,
+            name: name,
         }
     }
 
