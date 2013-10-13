@@ -9,7 +9,7 @@ use extra::getopts;
 
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::{ModuleRef, TypeRef};
-use rustc::lib::llvm::IntULE;
+use rustc::lib::llvm::{IntULE, IntEQ};
 use rustc::lib::llvm::True;
 use rustc::lib::llvm::llvm;
 
@@ -244,7 +244,15 @@ impl AheuiBlock {
                 a.call_rt(a.rt.pu, [cur, ret], "");
             },
             cㅊ => {
-                fail!("unimplemented: %?", self.h.cho);
+                let v1 = a.call_rt(a.rt.po, [cur], "");
+                let v2 = unsafe { llvm::LLVMConstInt(a.ty.i32_ty, 0, 0) };
+                let op = IntEQ as c_uint;
+                let cmp = do "cmp".with_c_str |buf| {
+                    unsafe { llvm::LLVMBuildICmp(a.bld, op, v1, v2, buf) }
+                };
+                unsafe {
+                    llvm::LLVMBuildStore(a.bld, cmp, a.comp);
+                }
             },
             cㅌ => {
                 let v1 = a.call_rt(a.rt.po, [cur], "");
@@ -330,6 +338,11 @@ impl AheuiBlock {
                     llvm::LLVMAddCase(sw, c, *nbb);
                 }
             }
+        }
+
+        // TODO: flow rework
+        if self.h.cho == cㅊ {
+            fail!("unimplemented: %?", self.h.cho);
         }
 
         match self.h.jung {
