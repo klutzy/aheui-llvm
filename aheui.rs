@@ -135,7 +135,7 @@ impl AheuiBlock {
         h: Hangul, x: uint, y: uint, cx: ContextRef,
         bld: BuilderRef, main_fn: ValueRef
     ) -> AheuiBlock {
-        let this_bb = do fmt!("aheui_bb_%u_%u", x, y).with_c_str |buf| {
+        let this_bb = do format!("aheui_bb_{:u}_{:u}", x, y).with_c_str |buf| {
             unsafe { llvm::LLVMAppendBasicBlockInContext(cx, main_fn, buf) }
         };
         AheuiBlock {
@@ -626,8 +626,6 @@ impl Aheui {
                 }
             }
         };
-
-        debug!("nfs: %?", nfs);
 
         let start_bb = b.get_bb(0, 0);
         unsafe {
