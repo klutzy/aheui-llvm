@@ -99,10 +99,6 @@ impl Hangul {
     }
 }
 
-fn bb_name(x: uint, y: uint) -> ~str {
-    fmt!("aheui_bb_%u_%u", x, y)
-}
-
 struct AheuiBlock {
     h: Hangul,
     x: uint,
@@ -118,7 +114,7 @@ impl AheuiBlock {
         h: Hangul, x: uint, y: uint, cx: ContextRef,
         bld: BuilderRef, main_fn: ValueRef
     ) -> AheuiBlock {
-        let this_bb = do bb_name(x, y).with_c_str |buf| {
+        let this_bb = do fmt!("aheui_bb_%u_%u", x, y).with_c_str |buf| {
             unsafe { llvm::LLVMAppendBasicBlockInContext(cx, main_fn, buf) }
         };
         AheuiBlock {
