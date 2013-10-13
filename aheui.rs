@@ -61,6 +61,17 @@ pub enum Flow {
     FlowDown,
 }
 
+impl Flow {
+    fn reverse(&self) -> Flow {
+        match *self {
+            FlowLeft => FlowRight,
+            FlowRight => FlowLeft,
+            FlowUp => FlowDown,
+            FlowDown => FlowUp,
+        }
+    }
+}
+
 #[deriving(Eq)]
 struct Hangul {
     cho: Cho,
