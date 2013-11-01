@@ -2,6 +2,7 @@
 #[link(name = "rt", vers = "0.0")];
 
 use std::local_data;
+use std::rt::io;
 
 pub struct AheuiRt {
     dqs: ~[~[i32]],
@@ -11,40 +12,40 @@ local_data_key!(key_rt: AheuiRt)
 
 #[no_mangle] #[inline(never)]
 pub extern "C" fn aheui_getchar() -> char {
-    let stdin = std::io::stdin();
+    let mut stdin = io::buffered::BufferedReader::new(io::stdin());
     print("input an unicode character: ");
-    let line = stdin.read_line();
+    let line = stdin.read_line().unwrap();
     line.char_at(0)
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_putchar(c: char) {
-    print(fmt!("%c", c));
+    print!("{:c}", c);
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_getint() -> i32 {
-    let stdin = std::io::stdin();
+    let mut stdin = io::buffered::BufferedReader::new(io::stdin());
     print("input an integer: ");
-    let line = stdin.read_line();
-    println(fmt!("line: %?", line));
+    let line = stdin.read_line().unwrap();
+    println!("line: {:?}", line);
     from_str(line).unwrap()
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_putint(i: i32) {
-    debug!("aheui_putint(%?)", i);
-    print(fmt!("%d", i as int));
+    debug!("aheui_putint({:?})", i);
+    print!("{:d}", i as int);
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_trace(x: i32, y: i32, c: char) {
-    debug!("trace(%c: %d, %d)", c, x as int, y as int);
+    debug!("trace({:c}: {:d}, {:d})", c, x as int, y as int);
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_push(idx: i8, v: i32) {
-    debug!("aheui_push(idx %d, val %d)", idx as int, v as int);
+    debug!("aheui_push(idx {:d}, val {:d})", idx as int, v as int);
     do local_data::get_mut(key_rt) |ar| {
         let ar = ar.unwrap();
         match idx {
@@ -53,7 +54,7 @@ pub extern "C" fn aheui_push(idx: i8, v: i32) {
                 ar.dqs[idx].push(v);
             },
         }
-        debug!("aheui_push: stack[%d]: %?", idx as int, ar.dqs[idx]);
+        debug!("aheui_push: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
     }
 }
 
@@ -70,7 +71,7 @@ pub extern "C" fn aheui_pop(idx: i8) -> i32 {
                 ar.dqs[idx].pop()
             },
         };
-        debug!("aheui_pop: stack[%d]: %?", idx as int, ar.dqs[idx]);
+        debug!("aheui_pop: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
         ret
     }
 }
@@ -90,7 +91,7 @@ pub extern "C" fn aheui_dup(idx: i8) {
                 ar.dqs[idx].push(n)
             },
         }
-        debug!("aheui_dup: stack[%d]: %?", idx as int, ar.dqs[idx]);
+        debug!("aheui_dup: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
     }
 }
 
@@ -117,7 +118,7 @@ pub extern "C" fn aheui_swap(idx: i8) {
                 ar.dqs[idx][len - 1] = m;
             },
         }
-        debug!("aheui_swap: stack[%d]: %?", idx as int, ar.dqs[idx]);
+        debug!("aheui_swap: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
     }
 }
 

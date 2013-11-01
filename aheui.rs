@@ -4,6 +4,9 @@ extern mod extra;
 extern mod rustc;
 
 use std::libc::{c_uint, c_ulonglong};
+use std::rt::io;
+use std::rt::io::Reader;
+use std::rt::io::file::FileInfo;
 
 use extra::getopts;
 
@@ -330,7 +333,7 @@ impl AheuiBlock {
             _ => {
                 // TODO: flow rework
                 if self.h.cho == cㅊ {
-                    fail!("unimplemented: %?", self.h.cho);
+                    fail!("unimplemented: {:?}", self.h.cho);
                 }
 
                 let j = match self.h.jung {
@@ -696,7 +699,7 @@ fn main() {
     ];
     let matches = match getopts::getopts(args.slice_from(1), opts) {
         Ok(a) => a,
-        Err(e) => fail2!(e.to_err_msg()),
+        Err(e) => fail!(e.to_err_msg()),
     };
 
     if matches.opt_present("h") {
@@ -722,8 +725,10 @@ fn main() {
         None => ~"aheui_main",
     };
 
-    let path = Path(in_fn);
-    let code = std::io::read_whole_file_str(&path).unwrap();
+    let path = Path::new(in_fn);
+    let mut reader = path.open_reader(io::Open).unwrap();
+    let code = reader.read_to_end();
+    let code = std::str::from_utf8(code);
     let mut code_iter = do code.line_iter().map |line| {
         line.iter().map(Hangul::from_char).collect::<~[Hangul]>()
     };
