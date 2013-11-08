@@ -4,9 +4,9 @@ extern mod extra;
 extern mod rustc;
 
 use std::libc::{c_uint, c_ulonglong};
-use std::rt::io;
 use std::rt::io::Reader;
-use std::rt::io::file::FileInfo;
+use std::rt::io::{Open, Read};
+use std::rt::io::fs::File;
 
 use extra::getopts;
 
@@ -726,7 +726,7 @@ fn main() {
     };
 
     let path = Path::new(in_fn);
-    let mut reader = path.open_reader(io::Open).unwrap();
+    let mut reader = File::open_mode(&path, Open, Read).unwrap();
     let code = reader.read_to_end();
     let code = std::str::from_utf8(code);
     let mut code_iter = do code.line_iter().map |line| {
