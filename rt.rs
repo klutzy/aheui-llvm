@@ -2,7 +2,7 @@
 #[link(name = "rt", vers = "0.0")];
 
 use std::local_data;
-use std::rt::io;
+use std::io;
 
 pub struct AheuiRt {
     dqs: ~[~[i32]],
@@ -46,7 +46,7 @@ pub extern "C" fn aheui_trace(x: i32, y: i32, c: char) {
 #[no_mangle]
 pub extern "C" fn aheui_push(idx: i8, v: i32) {
     debug!("aheui_push(idx {:d}, val {:d})", idx as int, v as int);
-    do local_data::get_mut(key_rt) |ar| {
+    local_data::get_mut(key_rt, |ar| {
         let ar = ar.unwrap();
         match idx {
             27 => fail!("Aheui extension is not supported."),
@@ -55,12 +55,12 @@ pub extern "C" fn aheui_push(idx: i8, v: i32) {
             },
         }
         debug!("aheui_push: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
-    }
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_pop(idx: i8) -> i32 {
-    do local_data::get_mut(key_rt) |ar| {
+    local_data::get_mut(key_rt, |ar| {
         let ar = ar.unwrap();
         let ret = match idx {
             27 => fail!("Aheui extension is not supported."),
@@ -73,12 +73,12 @@ pub extern "C" fn aheui_pop(idx: i8) -> i32 {
         };
         debug!("aheui_pop: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
         ret
-    }
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_dup(idx: i8) {
-    do local_data::get_mut(key_rt) |ar| {
+    local_data::get_mut(key_rt, |ar| {
         let ar = ar.unwrap();
         match idx {
             27 => fail!("Aheui extension is not supported."),
@@ -92,12 +92,12 @@ pub extern "C" fn aheui_dup(idx: i8) {
             },
         }
         debug!("aheui_dup: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
-    }
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_swap(idx: i8) {
-    do local_data::get_mut(key_rt) |ar| {
+    local_data::get_mut(key_rt, |ar| {
         let ar = ar.unwrap();
         match idx {
             27 => fail!("Aheui extension is not supported."),
@@ -119,7 +119,7 @@ pub extern "C" fn aheui_swap(idx: i8) {
             },
         }
         debug!("aheui_swap: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
-    }
+    })
 }
 
 pub fn rt_init() {
