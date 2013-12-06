@@ -711,7 +711,7 @@ fn main() {
         None => ~"aheui_main",
     };
 
-    let path = Path::init(in_fn);
+    let path = Path::new(in_fn);
     let mut reader = File::open(&path).unwrap();
     let code = reader.read_to_end();
     let code = std::str::from_utf8(code);
