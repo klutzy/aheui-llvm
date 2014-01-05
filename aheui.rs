@@ -345,9 +345,7 @@ impl AheuiBlock {
                         let z = 0 as c_ulonglong;
                         let c0 = llvm::LLVMConstInt(a.ty.i8_ty, z, 0);
                         let tmp = ~[c0, v];
-                        let nv = tmp.as_imm_buf(|tmp, n| {
-                            llvm::LLVMBuildGEP(a.bld, j, tmp, n as c_uint, b)
-                        });
+                        let nv = llvm::LLVMBuildGEP(a.bld, j, tmp.as_ptr(), 2, b);
                         let nv = a.load(nv, "aheui_flow_nv");
                         llvm::LLVMBuildStore(a.bld, nv, a.fl);
                     })
@@ -487,7 +485,7 @@ impl Aheui {
         n.with_c_str(|buf| {
             unsafe {
                 llvm::LLVMBuildCall(
-                    self.bld, f, std::vec::raw::to_ptr(args),
+                    self.bld, f, args.as_ptr(),
                     args.len() as std::libc::c_uint, buf
                 )
             }
@@ -521,7 +519,7 @@ impl Aheui {
         fn fn_ty(rt: TypeRef, par: &[TypeRef]) -> TypeRef {
             unsafe {
                 llvm::LLVMFunctionType(
-                    rt, std::vec::raw::to_ptr(par),
+                    rt, par.as_ptr(),
                     par.len() as std::libc::c_uint, 0
                 )
             }
@@ -610,17 +608,15 @@ impl Aheui {
                 ("\x01\x00\x03\x02", "fl3"),
             ];
             js.map(|&(j, n)| {
-                j.as_imm_buf(|jb, l| {
-                    let jb = jb as *i8;
-                    let l = l as c_uint;
-                    let v = n.with_c_str(|n| {
-                        llvm::LLVMAddGlobal(md, i8_arr_ty, n)
-                    });
-                    llvm::LLVMSetGlobalConstant(v, True);
-                    let c = llvm::LLVMConstStringInContext(cx, jb, l, True);
-                    llvm::LLVMSetInitializer(v, c);
-                    v
-                })
+                let jb = j.as_ptr() as *i8;
+                let l = j.len() as u32;
+                let v = n.with_c_str(|n| {
+                    llvm::LLVMAddGlobal(md, i8_arr_ty, n)
+                });
+                llvm::LLVMSetGlobalConstant(v, True);
+                let c = llvm::LLVMConstStringInContext(cx, jb, l, True);
+                llvm::LLVMSetInitializer(v, c);
+                v
             })
         };
 

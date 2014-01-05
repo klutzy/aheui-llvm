@@ -1,5 +1,5 @@
 #[crate_type = "lib"];
-#[link(name = "rt", vers = "0.0")];
+#[crate_id = "rt"];
 
 use std::local_data;
 use std::io;
