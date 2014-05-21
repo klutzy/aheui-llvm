@@ -1,13 +1,15 @@
-#[feature(globs, non_ascii_idents)];
+#![feature(globs, non_ascii_idents)]
+#![allow(non_camel_case_types)]
 
-extern mod extra;
-extern mod rustc;
+extern crate getopts;
+extern crate libc;
+extern crate rustc;
 
-use std::libc::{c_uint, c_ulonglong};
 use std::io::Reader;
 use std::io::fs::File;
+use std::owned::Box;
 
-use extra::getopts;
+use libc::{c_uint, c_ulonglong};
 
 use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::{ModuleRef, TypeRef};
@@ -106,7 +108,7 @@ impl Hangul {
         let u = c as uint;
         let ga = '가' as uint;
         let hih = '힣' as uint;
-        if (u < ga || u > hih) {
+        if u < ga || u > hih {
             return Hangul::none();
         }
         let u = u - ga;
@@ -129,7 +131,7 @@ struct AheuiBlock {
     cx: ContextRef,
     bld: BuilderRef,
     bb: BasicBlockRef,
-    name: ~str,
+    name: StrBuf,
 }
 
 impl AheuiBlock {
@@ -137,8 +139,8 @@ impl AheuiBlock {
         h: Hangul, x: uint, y: uint, cx: ContextRef,
         bld: BuilderRef, main_fn: ValueRef
     ) -> AheuiBlock {
-        let name = format!("aheui_bb_{:u}_{:u}", x, y);
-        let this_bb = Aheui::append_bb(cx, main_fn, name);
+        let name = format_strbuf!("aheui_bb_{:u}_{:u}", x, y);
+        let this_bb = Aheui::append_bb(cx, main_fn, name.as_slice());
         AheuiBlock {
             h: h,
             x: x,
@@ -333,10 +335,10 @@ impl AheuiBlock {
                 }
 
                 let j = match self.h.jung {
-                    ㅣ => a.nfs[1],
-                    ㅡ => a.nfs[2],
-                    ㅢ => a.nfs[3],
-                    _ => a.nfs[0],
+                    ㅣ => *a.nfs.get(1),
+                    ㅡ => *a.nfs.get(2),
+                    ㅢ => *a.nfs.get(3),
+                    _ => *a.nfs.get(0),
                 };
 
                 let v = a.load(a.fl, "aheui_flow_orig");
@@ -344,23 +346,23 @@ impl AheuiBlock {
                     "tmp".with_c_str(|b| {
                         let z = 0 as c_ulonglong;
                         let c0 = llvm::LLVMConstInt(a.ty.i8_ty, z, 0);
-                        let tmp = ~[c0, v];
+                        let tmp = vec!(c0, v);
                         let nv = llvm::LLVMBuildGEP(a.bld, j, tmp.as_ptr(), 2, b);
                         let nv = a.load(nv, "aheui_flow_nv");
                         llvm::LLVMBuildStore(a.bld, nv, a.fl);
                     })
                 }
 
-                let nps = [
+                let nps: Vec<_> = vec!(
                     a.next_pos(self.x, self.y, FlowLeft),
                     a.next_pos(self.x, self.y, FlowRight),
                     a.next_pos(self.x, self.y, FlowUp),
                     a.next_pos(self.x, self.y, FlowDown),
-                ].map(|&(nx, ny)| a.b.get_bb(nx, ny));
+                ).move_iter().map(|(nx, ny)| a.b.get_bb(nx, ny)).collect();
 
                 let r = a.load(a.fl, "aheui_flow_v");
                 let sw = unsafe {
-                    llvm::LLVMBuildSwitch(a.bld, r, nps[3], 3 as c_uint)
+                    llvm::LLVMBuildSwitch(a.bld, r, *nps.get(3), 3 as c_uint)
                 };
                 for (i, nbb) in nps.iter().take(3).enumerate() {
                     unsafe {
@@ -386,7 +388,7 @@ struct AheuiRt {
     sw: ValueRef,
 }
 
-type AheuiMapImpl = ~[~[~AheuiBlock]];
+type AheuiMapImpl = Vec<Vec<Box<AheuiBlock>>>;
 
 trait AheuiMap {
     fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef;
@@ -395,11 +397,11 @@ trait AheuiMap {
 
 impl AheuiMap for AheuiMapImpl {
     fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef {
-        self[y][x].bb
+        self.get(y).get(x).bb
     }
 
     fn get_hangul(&self, x: uint, y: uint) -> Hangul {
-        self[y][x].h
+        self.get(y).get(x).h
     }
 }
 
@@ -420,7 +422,7 @@ struct Aheui {
     fl: ValueRef,
     cur: ValueRef,
     comp: ValueRef,
-    nfs: ~[ValueRef],
+    nfs: Vec<ValueRef>,
     ty: Types,
 }
 
@@ -439,7 +441,7 @@ impl Aheui {
     fn next_pos(&self, x: uint, y: uint, flow: Flow) -> (uint, uint) {
         match flow {
             FlowLeft | FlowRight => {
-                let len = self.b[y].len();
+                let len = self.b.get(y).len();
                 let next_x = if flow == FlowLeft {
                     (len + x - 1) % len
                 } else {
@@ -461,8 +463,8 @@ impl Aheui {
                     fail!("Failed to find next position");
                 } else {
                     let ly = self.b.len() - y;
-                    let it = self.b.rev_iter().enumerate().skip(ly);
-                    let it = it.chain(self.b.rev_iter().enumerate().take(ly));
+                    let it = self.b.iter().rev().enumerate().skip(ly);
+                    let it = it.chain(self.b.iter().rev().enumerate().take(ly));
                     let mut it = it;
                     for (cur_y, line) in it {
                         if x < line.len() {
@@ -486,7 +488,7 @@ impl Aheui {
             unsafe {
                 llvm::LLVMBuildCall(
                     self.bld, f, args.as_ptr(),
-                    args.len() as std::libc::c_uint, buf
+                    args.len() as libc::c_uint, buf
                 )
             }
         })
@@ -498,7 +500,7 @@ impl Aheui {
         })
     }
 
-    fn new(h: ~[~[Hangul]], md_name: &str, fn_name: &str) -> Aheui {
+    fn new(h: Vec<Vec<Hangul>>, md_name: &str, fn_name: &str) -> Aheui {
         let cx = unsafe { llvm::LLVMContextCreate() };
         let md = md_name.with_c_str(|buf| {
             unsafe { llvm::LLVMModuleCreateWithNameInContext(buf, cx) }
@@ -520,7 +522,7 @@ impl Aheui {
             unsafe {
                 llvm::LLVMFunctionType(
                     rt, par.as_ptr(),
-                    par.len() as std::libc::c_uint, 0
+                    par.len() as libc::c_uint, 0
                 )
             }
         }
@@ -581,11 +583,11 @@ impl Aheui {
 
         let main_bb = Aheui::append_bb(cx, mf, "aheui_top");
 
-        let mut b = ~[];
+        let mut b = Vec::new();
         for (y, line) in h.iter().enumerate() {
-            let mut bl = ~[];
+            let mut bl = Vec::new();
             for (x, hangul) in line.iter().enumerate() {
-                let block = ~AheuiBlock::new(*hangul, x, y, cx, bld, mf);
+                let block = box AheuiBlock::new(*hangul, x, y, cx, bld, mf);
                 bl.push(block);
             }
             b.push(bl);
@@ -599,15 +601,15 @@ impl Aheui {
         let cur = new_var(bld, joNone as u8, i8_ty, "aheui_cur");
         let comp = new_var(bld, 0, i1_ty, "aheui_comp");
 
-        let i8_arr_ty = unsafe { llvm::LLVMArrayType(i8_ty, 4 as c_uint) };
+        let i8_arr_ty = unsafe { llvm::LLVMRustArrayType(i8_ty, 4) };
         let nfs = unsafe {
-            let js = [
+            let js = vec!(
                 ("\x00\x01\x02\x03", "fl0"),
                 ("\x01\x00\x02\x03", "fl1"),
                 ("\x00\x01\x03\x02", "fl2"),
                 ("\x01\x00\x03\x02", "fl3"),
-            ];
-            js.map(|&(j, n)| {
+            );
+            js.move_iter().map(|(j, n)| {
                 let jb = j.as_ptr() as *i8;
                 let l = j.len() as u32;
                 let v = n.with_c_str(|n| {
@@ -617,7 +619,7 @@ impl Aheui {
                 let c = llvm::LLVMConstStringInContext(cx, jb, l, True);
                 llvm::LLVMSetInitializer(v, c);
                 v
-            })
+            }).collect()
         };
 
         let start_bb = b.get_bb(0, 0);
@@ -672,111 +674,106 @@ fn print_usage(prog: &str) {
 }
 
 fn main() {
-    let args = std::os::args();
+    let args: Vec<_> = std::os::args().move_iter().map(|i| i.to_strbuf()).collect();
 
-    let opts = ~[
-        getopts::optopt("o"),
-        getopts::optopt("m"),
-        getopts::optflag("h"),
-    ];
-    let matches = match getopts::getopts(args.slice_from(1), opts) {
+    let opts = vec!(
+        getopts::optopt("o", "", "", ""),
+        getopts::optopt("m", "", "", ""),
+        getopts::optflag("h", "help", ""),
+    );
+    let matches = match getopts::getopts(args.slice_from(1), opts.as_slice()) {
         Ok(a) => a,
         Err(e) => fail!(e.to_err_msg()),
     };
 
     if matches.opt_present("h") {
-        print_usage(args[0]);
+        print_usage(args.get(0).as_slice());
         return;
     }
 
     let in_fn: &str = if !matches.free.is_empty() {
-        matches.free[0].clone()
+        matches.free.get(0).as_slice()
     } else {
-        print_usage(args[0]);
+        print_usage(args.get(0).as_slice());
         return;
     };
 
     let out_fn = in_fn + ".ll";
     let out_fn = match matches.opt_str("o") {
         Some(o) => o,
-        None => out_fn,
+        None => out_fn.to_strbuf(),
     };
 
     let fn_name = match matches.opt_str("m") {
         Some(m) => m,
-        None => ~"aheui_main",
+        None => "aheui_main".to_strbuf(),
     };
 
     let path = Path::new(in_fn);
     let mut reader = File::open(&path).unwrap();
-    let code = reader.read_to_end();
-    let code = std::str::from_utf8(code);
+    let code = reader.read_to_end().unwrap();
+    let code = std::str::from_utf8(code.as_slice()).unwrap();
     let mut code_iter = code.lines().map(|line| {
-        line.chars().map(Hangul::from_char).collect::<~[Hangul]>()
+        line.chars().map(Hangul::from_char).collect::<Vec<Hangul>>()
     });
     let code = code_iter.collect();
-    let aheui = Aheui::new(code, in_fn, fn_name);
+    let aheui = Aheui::new(code, in_fn, fn_name.as_slice());
     aheui.gen_llvm();
 
-    aheui.print_module(out_fn);
+    aheui.print_module(out_fn.as_slice());
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
+#[test]
+fn test_hangul() {
+    let 가 = Hangul { cho: cㄱ, jung: ㅏ, jong: joNone, c: '가' };
+    assert!(Hangul::from_char('가') == 가);
 
-    #[test]
-    fn test_hangul() {
-        let 가 = Hangul { cho: cㄱ, jung: ㅏ, jong: joNone };
-        assert!(Hangul::from_char('가') == 가);
+    let 아 = Hangul { cho: cㅇ, jung: ㅏ, jong: joNone, c: '아' };
+    assert!(Hangul::from_char('아') == 아);
 
-        let 아 = Hangul { cho: cㅇ, jung: ㅏ, jong: joNone };
-        assert!(Hangul::from_char('아') == 아);
+    let 힣 = Hangul { cho: cㅎ, jung: ㅣ, jong: jㅎ, c: '힣' };
+    assert!(Hangul::from_char('힣') == 힣);
 
-        let 힣 = Hangul { cho: cㅎ, jung: ㅣ, jong: jㅎ };
-        assert!(Hangul::from_char('힣') == 힣);
+    assert!(Hangul::from_char('A') == Hangul::none());
+    assert!(Hangul::from_char('☆') == Hangul::none());
+}
 
-        assert!(Hangul::from_char('A') == Hangul::none());
-        assert!(Hangul::from_char('☆') == Hangul::none());
-    }
+#[test]
+fn test_jong() {
+    assert!(joNone.val() == 0);
+    assert!(jㄱ.val() == 2);
+    assert!(jㄿ.val() == 9);
+}
 
-    #[test]
-    fn test_jong() {
-        assert!(joNone.val() == 0);
-        assert!(jㄱ.val() == 2);
-        assert!(jㄿ.val() == 9);
-    }
+#[test]
+fn test_next_pos() {
+    let map = vec!(
+        "아희희아희",
+        "아희아희",
+        "아희희",
+    );
+    let map: Vec<_> = map.move_iter().map(|x| {
+        x.chars().map(Hangul::from_char).collect::<Vec<Hangul>>()
+    }).collect();
+    let map = Aheui::new(map, "dummy", "dummy_main");
 
-    #[test]
-    fn test_next_pos() {
-        let map = [
-            "아희희아희",
-            "아희아희",
-            "아희희",
-        ];
-        let map = map.map(|&x| {
-            x.iter().map(Hangul::from_char).collect::<~[Hangul]>()
-        });
-        let map = Aheui::new(map, "dummy", "dummy_main");
+    assert!(map.next_pos(0, 0, FlowLeft) == (4, 0));
+    assert!(map.next_pos(0, 0, FlowRight) == (1, 0));
+    assert!(map.next_pos(0, 0, FlowUp) == (0, 2));
+    assert!(map.next_pos(0, 0, FlowDown) == (0, 1));
 
-        assert!(map.next_pos(0, 0, FlowLeft) == (4, 0));
-        assert!(map.next_pos(0, 0, FlowRight) == (1, 0));
-        assert!(map.next_pos(0, 0, FlowUp) == (0, 2));
-        assert!(map.next_pos(0, 0, FlowDown) == (0, 1));
+    assert!(map.next_pos(4, 0, FlowLeft) == (3, 0));
+    assert!(map.next_pos(4, 0, FlowRight) == (0, 0));
+    assert!(map.next_pos(4, 0, FlowUp) == (4, 0));
+    assert!(map.next_pos(4, 0, FlowDown) == (4, 0));
 
-        assert!(map.next_pos(4, 0, FlowLeft) == (3, 0));
-        assert!(map.next_pos(4, 0, FlowRight) == (0, 0));
-        assert!(map.next_pos(4, 0, FlowUp) == (4, 0));
-        assert!(map.next_pos(4, 0, FlowDown) == (4, 0));
+    assert!(map.next_pos(3, 1, FlowLeft) == (2, 1));
+    assert!(map.next_pos(3, 1, FlowRight) == (0, 1));
+    assert!(map.next_pos(3, 1, FlowUp) == (3, 0));
+    assert!(map.next_pos(3, 1, FlowDown) == (3, 0));
 
-        assert!(map.next_pos(3, 1, FlowLeft) == (2, 1));
-        assert!(map.next_pos(3, 1, FlowRight) == (0, 1));
-        assert!(map.next_pos(3, 1, FlowUp) == (3, 0));
-        assert!(map.next_pos(3, 1, FlowDown) == (3, 0));
-
-        assert!(map.next_pos(2, 2, FlowLeft) == (1, 2));
-        assert!(map.next_pos(2, 2, FlowRight) == (0, 2));
-        assert!(map.next_pos(2, 2, FlowUp) == (2, 1));
-        assert!(map.next_pos(2, 2, FlowDown) == (2, 0));
-    }
+    assert!(map.next_pos(2, 2, FlowLeft) == (1, 2));
+    assert!(map.next_pos(2, 2, FlowRight) == (0, 2));
+    assert!(map.next_pos(2, 2, FlowUp) == (2, 1));
+    assert!(map.next_pos(2, 2, FlowDown) == (2, 0));
 }

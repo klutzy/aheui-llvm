@@ -1,6 +1,6 @@
-#[feature(globs)];
+#![feature(globs)]
 
-extern mod rt;
+extern crate rt;
 use rt::*;
 
 extern "C" {
