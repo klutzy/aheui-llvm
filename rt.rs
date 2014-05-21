@@ -1,19 +1,22 @@
-#[crate_type = "lib"];
-#[crate_id = "rt"];
+#![crate_type = "lib"]
+#![crate_id = "rt"]
+#![feature(phase)]
 
-use std::local_data;
+#[phase(syntax, link)] extern crate log;
+
+use std::cell::RefCell;
 use std::io;
 
 pub struct AheuiRt {
-    dqs: ~[~[i32]],
+    dqs: Vec<Vec<i32>>,
 }
 
-local_data_key!(key_rt: AheuiRt)
+local_data_key!(key_rt: RefCell<AheuiRt>)
 
 #[no_mangle] #[inline(never)]
 pub extern "C" fn aheui_getchar() -> char {
-    let mut stdin = io::buffered::BufferedReader::new(io::stdin());
-    print("input an unicode character: ");
+    let mut stdin = io::BufferedReader::new(io::stdin());
+    print!("input an unicode character: ");
     let line = stdin.read_line().unwrap();
     line.char_at(0)
 }
@@ -25,8 +28,8 @@ pub extern "C" fn aheui_putchar(c: char) {
 
 #[no_mangle]
 pub extern "C" fn aheui_getint() -> i32 {
-    let mut stdin = io::buffered::BufferedReader::new(io::stdin());
-    print("input an integer: ");
+    let mut stdin = io::BufferedReader::new(io::stdin());
+    print!("input an integer: ");
     let line = stdin.read_line().unwrap();
     println!("line: {:?}", line);
     from_str(line).unwrap()
@@ -46,90 +49,94 @@ pub extern "C" fn aheui_trace(x: i32, y: i32, c: char) {
 #[no_mangle]
 pub extern "C" fn aheui_push(idx: i8, v: i32) {
     debug!("aheui_push(idx {:d}, val {:d})", idx as int, v as int);
-    local_data::get_mut(key_rt, |ar| {
-        let ar = ar.unwrap();
-        match idx {
-            27 => fail!("Aheui extension is not supported."),
-            _ => {
-                ar.dqs[idx].push(v);
-            },
-        }
-        debug!("aheui_push: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
-    })
+    let cell = key_rt.get().unwrap();
+    let mut ar = cell.borrow_mut();
+    match idx {
+        27 => fail!("Aheui extension is not supported."),
+        _ => {
+            ar.dqs.get_mut(idx as uint).push(v);
+        },
+    }
+    debug!("aheui_push: stack[{:d}]: {:?}", idx as int, ar.dqs.get(idx as uint).as_slice());
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_pop(idx: i8) -> i32 {
-    local_data::get_mut(key_rt, |ar| {
-        let ar = ar.unwrap();
-        let ret = match idx {
-            27 => fail!("Aheui extension is not supported."),
-            21 => {
-                ar.dqs[idx].shift()
-            },
-            _ => {
-                ar.dqs[idx].pop()
-            },
-        };
-        debug!("aheui_pop: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
-        ret
-    })
+    let cell = key_rt.get().unwrap();
+    let mut ar = cell.borrow_mut();
+    let i = idx as uint;
+    let ret = match idx {
+        27 => fail!("Aheui extension is not supported."),
+        21 => {
+            ar.dqs.get_mut(i).shift()
+        },
+        _ => {
+            ar.dqs.get_mut(i).pop()
+        },
+    };
+    debug!("aheui_pop: stack[{:d}]: {:?}", idx as int, ar.dqs.get(i).as_slice());
+    ret.unwrap()
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_dup(idx: i8) {
-    local_data::get_mut(key_rt, |ar| {
-        let ar = ar.unwrap();
-        match idx {
-            27 => fail!("Aheui extension is not supported."),
-            21 => {
-                let n = ar.dqs[idx][0];
-                ar.dqs[idx].unshift(n);
-            },
-            _ => {
-                let n = ar.dqs[idx][ar.dqs[idx].len() - 1];
-                ar.dqs[idx].push(n)
-            },
-        }
-        debug!("aheui_dup: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
-    })
+    let cell = key_rt.get().unwrap();
+    let mut ar = cell.borrow_mut();
+    let i = idx as uint;
+    match idx {
+        27 => fail!("Aheui extension is not supported."),
+        21 => {
+            let dqs = ar.dqs.get_mut(i);
+            let n = *dqs.get(0);
+            dqs.unshift(n);
+        },
+        _ => {
+            let dqs = ar.dqs.get_mut(i);
+            let len = dqs.len();
+            let n = *dqs.get(len - 1);
+            dqs.push(n);
+        },
+    }
+    debug!("aheui_dup: stack[{:d}]: {:?}", idx as int, ar.dqs.get(i).as_slice());
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_swap(idx: i8) {
-    local_data::get_mut(key_rt, |ar| {
-        let ar = ar.unwrap();
-        match idx {
-            27 => fail!("Aheui extension is not supported."),
-            21 => {
-                let len = ar.dqs[idx].len();
-                assert!(len >= 2);
-                let m = ar.dqs[idx][0];
-                let n = ar.dqs[idx][1];
-                ar.dqs[idx][0] = n;
-                ar.dqs[idx][1] = m;
-            },
-            _ => {
-                let len = ar.dqs[idx].len();
-                assert!(len >= 2);
-                let m = ar.dqs[idx][len - 2];
-                let n = ar.dqs[idx][len - 1];
-                ar.dqs[idx][len - 2] = n;
-                ar.dqs[idx][len - 1] = m;
-            },
-        }
-        debug!("aheui_swap: stack[{:d}]: {:?}", idx as int, ar.dqs[idx]);
-    })
+    let cell = key_rt.get().unwrap();
+    let mut ar = cell.borrow_mut();
+    let i = idx as uint;
+    match idx {
+        27 => fail!("Aheui extension is not supported."),
+        21 => {
+            let dqs = ar.dqs.get_mut(i).as_mut_slice();
+            let len = dqs.len();
+            assert!(len >= 2);
+            let m = dqs[0];
+            let n = dqs[1];
+            dqs[0] = n;
+            dqs[1] = m;
+        },
+        _ => {
+            let dqs = ar.dqs.get_mut(i).as_mut_slice();
+            let len = dqs.len();
+            assert!(len >= 2);
+            let m = dqs[len - 2];
+            let n = dqs[len - 1];
+            dqs[len - 2] = n;
+            dqs[len - 1] = m;
+        },
+    }
+    debug!("aheui_swap: stack[{:d}]: {:?}", idx as int, ar.dqs.get(i).as_slice());
 }
 
 pub fn rt_init() {
-    let mut dqs = ~[];
+    let mut dqs = Vec::new();
     for _ in range(0, 26) {
-        dqs.push(~[]);
+        dqs.push(Vec::new());
     }
     let ar = AheuiRt {
         dqs: dqs,
     };
 
-    local_data::set(key_rt, ar);
+    key_rt.replace(Some(RefCell::new(ar)));
 }

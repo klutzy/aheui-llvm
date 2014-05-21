@@ -20,11 +20,8 @@ librt.dummy: rt.rs
 
 
 # example usage
-$(HELLO): rtmain.rs rt $(AHEUI) libREADME.so
-	$(RUSTC) -o $@ $< -L . --link-args "-L. -lREADME"
-
-libREADME.so: README.o
-	ld -shared -o $@ $<
+$(HELLO): rtmain.rs rt $(AHEUI) README.o
+	$(RUSTC) -o $@ $< -L . -C link-args="README.o"
 
 README.o: README.ll
 	$(LLC) -filetype=obj -relocation-model=pic -o $@ $<
