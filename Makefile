@@ -31,4 +31,4 @@ README.ll: README.txt $(AHEUI)
 
 .PHONY: clean
 clean:
-	rm -f $(AHEUI) $(HELLO) *.o *.ll *.so *.dummy
+	rm -f $(AHEUI) $(HELLO) *.o *.ll *.dummy *.rlib
