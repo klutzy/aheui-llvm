@@ -698,7 +698,7 @@ fn main() {
         return;
     };
 
-    let out_fn = in_fn + ".ll";
+    let out_fn = in_fn.to_strbuf().append(".ll");
     let out_fn = match matches.opt_str("o") {
         Some(o) => o,
         None => out_fn.to_strbuf(),

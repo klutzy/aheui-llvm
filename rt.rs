@@ -18,7 +18,7 @@ pub extern "C" fn aheui_getchar() -> char {
     let mut stdin = io::BufferedReader::new(io::stdin());
     print!("input an unicode character: ");
     let line = stdin.read_line().unwrap();
-    line.char_at(0)
+    line.as_slice().char_at(0)
 }
 
 #[no_mangle]
@@ -32,7 +32,7 @@ pub extern "C" fn aheui_getint() -> i32 {
     print!("input an integer: ");
     let line = stdin.read_line().unwrap();
     println!("line: {:?}", line);
-    from_str(line).unwrap()
+    from_str(line.as_slice()).unwrap()
 }
 
 #[no_mangle]
