@@ -1,4 +1,4 @@
-#![feature(globs, non_ascii_idents, custom_derive, plugin)]
+#![feature(globs, non_ascii_idents, custom_derive, plugin, rustc_private, libc, convert)]
 #![plugin(num_macros)]
 #![allow(non_camel_case_types)]
 
