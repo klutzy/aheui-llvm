@@ -59,33 +59,30 @@ impl Jong {
 
 #[derive(Eq)]
 pub enum Flow {
-    FlowLeft,
-    FlowRight,
-    FlowUp,
-    FlowDown,
+    Left,
+    Right,
+    Up,
+    Down,
 }
 
 impl Flow {
     fn reverse(&self) -> Flow {
-        use Flow::*;
-
         match *self {
-            FlowLeft => FlowRight,
-            FlowRight => FlowLeft,
-            FlowUp => FlowDown,
-            FlowDown => FlowUp,
+            Flow::Left => Flow::Right,
+            Flow::Right => Flow::Left,
+            Flow::Up => Flow::Down,
+            Flow::Down => Flow::Up,
         }
     }
 
     fn from_jung(jung: Jung) -> Option<Flow> {
-        use Flow::*;
         use Jung::*;
 
         match jung {
-            ㅏ | ㅑ => Some(FlowRight),
-            ㅓ | ㅕ => Some(FlowLeft),
-            ㅗ | ㅛ => Some(FlowUp),
-            ㅜ | ㅠ => Some(FlowDown),
+            ㅏ | ㅑ => Some(Flow::Right),
+            ㅓ | ㅕ => Some(Flow::Left),
+            ㅗ | ㅛ => Some(Flow::Up),
+            ㅜ | ㅠ => Some(Flow::Down),
             _ => None,
         }
     }
@@ -363,10 +360,10 @@ impl AheuiBlock {
                 }
 
                 let nps: Vec<_> = vec!(
-                    a.next_pos(self.x, self.y, FlowLeft),
-                    a.next_pos(self.x, self.y, FlowRight),
-                    a.next_pos(self.x, self.y, FlowUp),
-                    a.next_pos(self.x, self.y, FlowDown),
+                    a.next_pos(self.x, self.y, Flow::Left),
+                    a.next_pos(self.x, self.y, Flow::Right),
+                    a.next_pos(self.x, self.y, Flow::Up),
+                    a.next_pos(self.x, self.y, Flow::Down),
                 ).move_iter().map(|(nx, ny)| a.b.get_bb(nx, ny)).collect();
 
                 let r = a.load(a.fl, "aheui_flow_v");
@@ -449,17 +446,17 @@ fn new_var(bld: BuilderRef, v: u8, ty: TypeRef, name: &str) -> ValueRef {
 impl Aheui {
     fn next_pos(&self, x: u32, y: u32, flow: Flow) -> (u32, u32) {
         match flow {
-            FlowLeft | FlowRight => {
+            Flow::Left | Flow::Right => {
                 let len = self.b.get(y).len();
-                let next_x = if flow == FlowLeft {
+                let next_x = if flow == Flow::Left {
                     (len + x - 1) % len
                 } else {
                     (x + 1) % len
                 };
                 return (next_x, y);
             }
-            FlowUp | FlowDown => {
-                if flow == FlowDown {
+            Flow::Up | Flow::Down => {
+                if flow == Flow::Down {
                     let ly = y + 1;
                     let it = self.b.iter().enumerate().skip(ly);
                     let it = it.chain(self.b.iter().enumerate().take(ly));
@@ -606,7 +603,7 @@ impl Aheui {
             llvm::LLVMPositionBuilderAtEnd(bld, main_bb);
         }
 
-        let fl = new_var(bld, FlowDown as u8, i8_ty, "aheui_flow");
+        let fl = new_var(bld, Flow::Down as u8, i8_ty, "aheui_flow");
         let cur = new_var(bld, joNone as u8, i8_ty, "aheui_cur");
         let comp = new_var(bld, 0, i1_ty, "aheui_comp");
 
@@ -766,23 +763,23 @@ fn test_next_pos() {
     }).collect();
     let map = Aheui::new(map, "dummy", "dummy_main");
 
-    assert!(map.next_pos(0, 0, FlowLeft) == (4, 0));
-    assert!(map.next_pos(0, 0, FlowRight) == (1, 0));
-    assert!(map.next_pos(0, 0, FlowUp) == (0, 2));
-    assert!(map.next_pos(0, 0, FlowDown) == (0, 1));
+    assert!(map.next_pos(0, 0, Flow::Left) == (4, 0));
+    assert!(map.next_pos(0, 0, Flow::Right) == (1, 0));
+    assert!(map.next_pos(0, 0, Flow::Up) == (0, 2));
+    assert!(map.next_pos(0, 0, Flow::Down) == (0, 1));
 
-    assert!(map.next_pos(4, 0, FlowLeft) == (3, 0));
-    assert!(map.next_pos(4, 0, FlowRight) == (0, 0));
-    assert!(map.next_pos(4, 0, FlowUp) == (4, 0));
-    assert!(map.next_pos(4, 0, FlowDown) == (4, 0));
+    assert!(map.next_pos(4, 0, Flow::Left) == (3, 0));
+    assert!(map.next_pos(4, 0, Flow::Right) == (0, 0));
+    assert!(map.next_pos(4, 0, Flow::Up) == (4, 0));
+    assert!(map.next_pos(4, 0, Flow::Down) == (4, 0));
 
-    assert!(map.next_pos(3, 1, FlowLeft) == (2, 1));
-    assert!(map.next_pos(3, 1, FlowRight) == (0, 1));
-    assert!(map.next_pos(3, 1, FlowUp) == (3, 0));
-    assert!(map.next_pos(3, 1, FlowDown) == (3, 0));
+    assert!(map.next_pos(3, 1, Flow::Left) == (2, 1));
+    assert!(map.next_pos(3, 1, Flow::Right) == (0, 1));
+    assert!(map.next_pos(3, 1, Flow::Up) == (3, 0));
+    assert!(map.next_pos(3, 1, Flow::Down) == (3, 0));
 
-    assert!(map.next_pos(2, 2, FlowLeft) == (1, 2));
-    assert!(map.next_pos(2, 2, FlowRight) == (0, 2));
-    assert!(map.next_pos(2, 2, FlowUp) == (2, 1));
-    assert!(map.next_pos(2, 2, FlowDown) == (2, 0));
+    assert!(map.next_pos(2, 2, Flow::Left) == (1, 2));
+    assert!(map.next_pos(2, 2, Flow::Right) == (0, 2));
+    assert!(map.next_pos(2, 2, Flow::Up) == (2, 1));
+    assert!(map.next_pos(2, 2, Flow::Down) == (2, 0));
 }
