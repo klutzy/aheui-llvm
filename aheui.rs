@@ -610,7 +610,7 @@ impl Aheui {
                 ("\x01\x00\x03\x02", "fl3"),
             );
             js.move_iter().map(|(j, n)| {
-                let jb = j.as_ptr() as *i8;
+                let jb = j.as_ptr() as *mut i8;
                 let l = j.len() as u32;
                 let v = n.with_c_str(|n| {
                     llvm::LLVMAddGlobal(md, i8_arr_ty, n)
