@@ -327,7 +327,7 @@ impl AheuiBlock {
             _ => {
                 // TODO: flow rework
                 if self.h.cho == cㅊ {
-                    panic!("unimplemented: {:?}", self.h.cho);
+                    unimplemented!()
                 }
 
                 let j = match self.h.jung {
