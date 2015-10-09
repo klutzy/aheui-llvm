@@ -2,7 +2,7 @@
 #![crate_id = "rt"]
 #![feature(phase)]
 
-#[phase(syntax, link)] extern crate log;
+#[macro_use] extern crate log;
 
 use std::cell::RefCell;
 use std::io;
@@ -11,11 +11,11 @@ pub struct AheuiRt {
     dqs: Vec<Vec<i32>>,
 }
 
-local_data_key!(key_rt: RefCell<AheuiRt>)
+thread_local!(static key_rt: RefCell<AheuiRt> = RefCell::new(AheuiRt { dqs: Vec::new() }));
 
 #[no_mangle] #[inline(never)]
 pub extern "C" fn aheui_getchar() -> char {
-    let mut stdin = io::BufferedReader::new(io::stdin());
+    let mut stdin = io::BufReader::new(io::stdin());
     print!("input an unicode character: ");
     let line = stdin.read_line().unwrap();
     line.as_slice().char_at(0)
@@ -23,50 +23,50 @@ pub extern "C" fn aheui_getchar() -> char {
 
 #[no_mangle]
 pub extern "C" fn aheui_putchar(c: char) {
-    print!("{:c}", c);
+    print!("{}", c);
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_getint() -> i32 {
-    let mut stdin = io::BufferedReader::new(io::stdin());
+    let mut stdin = io::BufReader::new(io::stdin());
     print!("input an integer: ");
     let line = stdin.read_line().unwrap();
     println!("line: {:?}", line);
-    from_str(line.as_slice()).unwrap()
+    line.parse().unwrap()
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_putint(i: i32) {
     debug!("aheui_putint({:?})", i);
-    print!("{:d}", i as int);
+    print!("{}", i);
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_trace(x: i32, y: i32, c: char) {
-    debug!("trace({:c}: {:d}, {:d})", c, x as int, y as int);
+    debug!("trace({}: {}, {})", c, x, y);
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_push(idx: i8, v: i32) {
-    debug!("aheui_push(idx {:d}, val {:d})", idx as int, v as int);
+    debug!("aheui_push(idx {}, val {})", idx, v);
     let cell = key_rt.get().unwrap();
     let mut ar = cell.borrow_mut();
     match idx {
-        27 => fail!("Aheui extension is not supported."),
+        27 => panic!("Aheui extension is not supported."),
         _ => {
-            ar.dqs.get_mut(idx as uint).push(v);
+            ar.dqs.get_mut(idx as usize).push(v);
         },
     }
-    debug!("aheui_push: stack[{:d}]: {:?}", idx as int, ar.dqs.get(idx as uint).as_slice());
+    debug!("aheui_push: stack[{}]: {:?}", idx, ar.dqs.get(idx as usize).as_slice());
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_pop(idx: i8) -> i32 {
     let cell = key_rt.get().unwrap();
     let mut ar = cell.borrow_mut();
-    let i = idx as uint;
+    let i = idx as usize;
     let ret = match idx {
-        27 => fail!("Aheui extension is not supported."),
+        27 => panic!("Aheui extension is not supported."),
         21 => {
             ar.dqs.get_mut(i).shift()
         },
@@ -74,7 +74,7 @@ pub extern "C" fn aheui_pop(idx: i8) -> i32 {
             ar.dqs.get_mut(i).pop()
         },
     };
-    debug!("aheui_pop: stack[{:d}]: {:?}", idx as int, ar.dqs.get(i).as_slice());
+    debug!("aheui_pop: stack[{}]: {:?}", idx, ar.dqs.get(i).as_slice());
     ret.unwrap()
 }
 
@@ -82,9 +82,9 @@ pub extern "C" fn aheui_pop(idx: i8) -> i32 {
 pub extern "C" fn aheui_dup(idx: i8) {
     let cell = key_rt.get().unwrap();
     let mut ar = cell.borrow_mut();
-    let i = idx as uint;
+    let i = idx as usize;
     match idx {
-        27 => fail!("Aheui extension is not supported."),
+        27 => panic!("Aheui extension is not supported."),
         21 => {
             let dqs = ar.dqs.get_mut(i);
             let n = *dqs.get(0);
@@ -97,16 +97,16 @@ pub extern "C" fn aheui_dup(idx: i8) {
             dqs.push(n);
         },
     }
-    debug!("aheui_dup: stack[{:d}]: {:?}", idx as int, ar.dqs.get(i).as_slice());
+    debug!("aheui_dup: stack[{}]: {:?}", idx, ar.dqs.get(i).as_slice());
 }
 
 #[no_mangle]
 pub extern "C" fn aheui_swap(idx: i8) {
     let cell = key_rt.get().unwrap();
     let mut ar = cell.borrow_mut();
-    let i = idx as uint;
+    let i = idx as usize;
     match idx {
-        27 => fail!("Aheui extension is not supported."),
+        27 => panic!("Aheui extension is not supported."),
         21 => {
             let dqs = ar.dqs.get_mut(i).as_mut_slice();
             let len = dqs.len();
@@ -126,12 +126,12 @@ pub extern "C" fn aheui_swap(idx: i8) {
             dqs[len - 1] = m;
         },
     }
-    debug!("aheui_swap: stack[{:d}]: {:?}", idx as int, ar.dqs.get(i).as_slice());
+    debug!("aheui_swap: stack[{}]: {:?}", idx, ar.dqs.get(i).as_slice());
 }
 
 pub fn rt_init() {
     let mut dqs = Vec::new();
-    for _ in range(0, 26) {
+    for _ in 0.. 26 {
         dqs.push(Vec::new());
     }
     let ar = AheuiRt {
