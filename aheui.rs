@@ -17,21 +17,21 @@ use rustc::lib::llvm::{IntULE, IntEQ};
 use rustc::lib::llvm::True;
 use rustc::lib::llvm;
 
-#[derive(Eq, FromPrimitive)]
+#[derive(Eq)]
 pub enum Cho {
     cㄱ, cㄲ, cㄴ, cㄷ, cㄸ, cㄹ, cㅁ, cㅂ,
     cㅃ, cㅅ, cㅆ, cㅇ, cㅈ, cㅉ, cㅊ, cㅋ,
     cㅌ, cㅍ, cㅎ, cNone
 }
 
-#[derive(Eq, FromPrimitive)]
+#[derive(Eq)]
 pub enum Jung {
     ㅏ, ㅐ, ㅑ, ㅒ, ㅓ, ㅔ, ㅕ, ㅖ,
     ㅗ, ㅘ, ㅙ, ㅚ, ㅛ, ㅜ, ㅝ, ㅞ,
     ㅟ, ㅠ, ㅡ, ㅢ, ㅣ, juNone
 }
 
-#[derive(Eq, FromPrimitive)]
+#[derive(Eq)]
 pub enum Jong {
     joNone,
     jㄱ, jㄲ, jㄳ, jㄴ, jㄵ, jㄶ, jㄷ, jㄹ,
@@ -41,8 +41,8 @@ pub enum Jong {
 }
 
 impl Jong {
-    fn val(&self) -> uint {
-        if *self == jㅇ || *self == jㅎ {
+    fn val(&self) -> u32 {
+        if *self == Jong::jㅇ || *self == Jong::jㅎ {
             panic!("Jong::val(ㅇ or ㅎ)");
         }
 
@@ -53,7 +53,7 @@ impl Jong {
             4, 6, 2, 4, 0, 3, 4, 3,
             4, 4, 0,
         ];
-        map[*self as uint]
+        map[*self as u32]
     }
 }
 
@@ -67,6 +67,8 @@ pub enum Flow {
 
 impl Flow {
     fn reverse(&self) -> Flow {
+        use Flow::*;
+
         match *self {
             FlowLeft => FlowRight,
             FlowRight => FlowLeft,
@@ -76,6 +78,9 @@ impl Flow {
     }
 
     fn from_jung(jung: Jung) -> Option<Flow> {
+        use Flow::*;
+        use Jung::*;
+
         match jung {
             ㅏ | ㅑ => Some(FlowRight),
             ㅓ | ㅕ => Some(FlowLeft),
@@ -97,17 +102,17 @@ struct Hangul {
 impl Hangul {
     fn none() -> Hangul {
         Hangul {
-            cho: cNone,
-            jung: juNone,
-            jong: joNone,
+            cho: Cho::cNone,
+            jung: Jung::juNone,
+            jong: Jong::joNone,
             c: '?',
         }
     }
 
     fn from_char(c: char) -> Hangul {
-        let u = c as uint;
-        let ga = '가' as uint;
-        let hih = '힣' as uint;
+        let u = c as u32;
+        let ga = '가' as u32;
+        let hih = '힣' as u32;
         if u < ga || u > hih {
             return Hangul::none();
         }
@@ -116,9 +121,9 @@ impl Hangul {
         let jung = (u / 28) % 21;
         let jong = u % 28;
         Hangul {
-            cho: std::num::from_uint(cho).unwrap(),
-            jung: std::num::from_uint(jung).unwrap(),
-            jong: std::num::from_uint(jong).unwrap(),
+            cho: std::num::from_u32(cho).unwrap(),
+            jung: std::num::from_u32(jung).unwrap(),
+            jong: std::num::from_u32(jong).unwrap(),
             c: c,
         }
     }
@@ -126,8 +131,8 @@ impl Hangul {
 
 struct AheuiBlock {
     h: Hangul,
-    x: uint,
-    y: uint,
+    x: u32,
+    y: u32,
     cx: ContextRef,
     bld: BuilderRef,
     bb: BasicBlockRef,
@@ -136,7 +141,7 @@ struct AheuiBlock {
 
 impl AheuiBlock {
     fn new(
-        h: Hangul, x: uint, y: uint, cx: ContextRef,
+        h: Hangul, x: u32, y: u32, cx: ContextRef,
         bld: BuilderRef, main_fn: ValueRef
     ) -> AheuiBlock {
         let name = format!("aheui_bb_{}_{}", x, y);
@@ -168,6 +173,10 @@ impl AheuiBlock {
     }
 
     fn gen_bb(&self, a: &Aheui) {
+        use Cho::*;
+        use Jung::*;
+        use Jong::*;
+
         unsafe {
             llvm::LLVMPositionBuilderAtEnd(self.bld, self.bb);
         }
@@ -391,16 +400,16 @@ struct AheuiRt {
 type AheuiMapImpl = Vec<Vec<Box<AheuiBlock>>>;
 
 trait AheuiMap {
-    fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef;
-    fn get_hangul(&self, x: uint, y: uint) -> Hangul;
+    fn get_bb(&self, x: u32, y: u32) -> BasicBlockRef;
+    fn get_hangul(&self, x: u32, y: u32) -> Hangul;
 }
 
 impl AheuiMap for AheuiMapImpl {
-    fn get_bb(&self, x: uint, y: uint) -> BasicBlockRef {
+    fn get_bb(&self, x: u32, y: u32) -> BasicBlockRef {
         self.get(y).get(x).bb
     }
 
-    fn get_hangul(&self, x: uint, y: uint) -> Hangul {
+    fn get_hangul(&self, x: u32, y: u32) -> Hangul {
         self.get(y).get(x).h
     }
 }
@@ -438,7 +447,7 @@ fn new_var(bld: BuilderRef, v: u8, ty: TypeRef, name: &str) -> ValueRef {
 }
 
 impl Aheui {
-    fn next_pos(&self, x: uint, y: uint, flow: Flow) -> (uint, uint) {
+    fn next_pos(&self, x: u32, y: u32, flow: Flow) -> (u32, u32) {
         match flow {
             FlowLeft | FlowRight => {
                 let len = self.b.get(y).len();
