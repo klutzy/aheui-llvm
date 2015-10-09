@@ -331,10 +331,10 @@ impl AheuiBlock {
                 }
 
                 let j = match self.h.jung {
-                    ㅣ => *a.nfs.get(1),
-                    ㅡ => *a.nfs.get(2),
-                    ㅢ => *a.nfs.get(3),
-                    _ => *a.nfs.get(0),
+                    ㅣ => a.nfs[1],
+                    ㅡ => a.nfs[2],
+                    ㅢ => a.nfs[3],
+                    _  => a.nfs[0],
                 };
 
                 let v = a.load(a.fl, "aheui_flow_orig");
@@ -357,7 +357,7 @@ impl AheuiBlock {
 
                 let r = a.load(a.fl, "aheui_flow_v");
                 let sw = unsafe {
-                    llvm::LLVMBuildSwitch(a.bld, r, *nps.get(3), 3 as c_uint)
+                    llvm::LLVMBuildSwitch(a.bld, r, nps[3], 3 as c_uint)
                 };
                 for (i, nbb) in nps.iter().take(3).enumerate() {
                     unsafe {
@@ -392,11 +392,11 @@ trait AheuiMap {
 
 impl AheuiMap for AheuiMapImpl {
     fn get_bb(&self, x: usize, y: usize) -> BasicBlockRef {
-        self.get(y).get(x).bb
+        self[y][x].bb
     }
 
     fn get_hangul(&self, x: usize, y: usize) -> Hangul {
-        self.get(y).get(x).h
+        self[y][x].h
     }
 }
 
@@ -435,7 +435,7 @@ impl Aheui {
     fn next_pos(&self, x: usize, y: usize, flow: Flow) -> (usize, usize) {
         match flow {
             Flow::Left | Flow::Right => {
-                let len = self.b.get(y).len();
+                let len = self.b[y].len();
                 let next_x = if flow == Flow::Left {
                     (len + x - 1) % len
                 } else {
