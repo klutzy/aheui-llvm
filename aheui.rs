@@ -43,7 +43,7 @@ pub enum Jong {
 impl Jong {
     fn val(&self) -> uint {
         if *self == jㅇ || *self == jㅎ {
-            fail!("Jong::val(ㅇ or ㅎ)");
+            panic!("Jong::val(ㅇ or ㅎ)");
         }
 
         let map = [
@@ -311,7 +311,7 @@ impl AheuiBlock {
                             let (nx, ny) = a.next_pos(self.x, self.y, flow);
                             a.next_pos(nx, ny, flow)
                         },
-                        _ => fail!("???"),
+                        _ => panic!("???"),
                     }
                 };
                 let (nx, ny) = next_pos(flow);
@@ -331,7 +331,7 @@ impl AheuiBlock {
             _ => {
                 // TODO: flow rework
                 if self.h.cho == cㅊ {
-                    fail!("unimplemented: {:?}", self.h.cho);
+                    panic!("unimplemented: {:?}", self.h.cho);
                 }
 
                 let j = match self.h.jung {
@@ -460,7 +460,7 @@ impl Aheui {
                             return (x, cur_y);
                         }
                     }
-                    fail!("Failed to find next position");
+                    panic!("Failed to find next position");
                 } else {
                     let ly = self.b.len() - y;
                     let it = self.b.iter().rev().enumerate().skip(ly);
@@ -471,7 +471,7 @@ impl Aheui {
                             return (x, self.b.len() - 1 - cur_y);
                         }
                     }
-                    fail!("Failed to find next position");
+                    panic!("Failed to find next position");
                 }
             }
         }
@@ -683,7 +683,7 @@ fn main() {
     );
     let matches = match getopts::getopts(args.slice_from(1), opts.as_slice()) {
         Ok(a) => a,
-        Err(e) => fail!(e.to_err_msg()),
+        Err(e) => panic!(e.to_err_msg()),
     };
 
     if matches.opt_present("h") {
