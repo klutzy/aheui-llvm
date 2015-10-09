@@ -1,0 +1,7 @@
+[package]
+name = "aheui"
+version = "0.1.0"
+authors = [
+  "klutzy <klutzytheklutzy@gmail.com>",
+  "Hyeon Kim <simnalamburt@gmail.com>"
+]
