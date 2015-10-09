@@ -20,21 +20,21 @@ use rustc::lib::llvm::{IntULE, IntEQ};
 use rustc::lib::llvm::True;
 use rustc::lib::llvm;
 
-#[derive(Eq, NumFromPrimitive)]
+#[derive(PartialEq, Eq, NumFromPrimitive)]
 pub enum Cho {
     cㄱ, cㄲ, cㄴ, cㄷ, cㄸ, cㄹ, cㅁ, cㅂ,
     cㅃ, cㅅ, cㅆ, cㅇ, cㅈ, cㅉ, cㅊ, cㅋ,
     cㅌ, cㅍ, cㅎ, cNone
 }
 
-#[derive(Eq, NumFromPrimitive)]
+#[derive(PartialEq, Eq, NumFromPrimitive)]
 pub enum Jung {
     ㅏ, ㅐ, ㅑ, ㅒ, ㅓ, ㅔ, ㅕ, ㅖ,
     ㅗ, ㅘ, ㅙ, ㅚ, ㅛ, ㅜ, ㅝ, ㅞ,
     ㅟ, ㅠ, ㅡ, ㅢ, ㅣ, juNone
 }
 
-#[derive(Eq, NumFromPrimitive)]
+#[derive(PartialEq, Eq, NumFromPrimitive)]
 pub enum Jong {
     joNone,
     jㄱ, jㄲ, jㄳ, jㄴ, jㄵ, jㄶ, jㄷ, jㄹ,
@@ -60,7 +60,7 @@ impl Jong {
     }
 }
 
-#[derive(Eq)]
+#[derive(PartialEq, Eq)]
 pub enum Flow {
     Left,
     Right,
@@ -91,7 +91,7 @@ impl Flow {
     }
 }
 
-#[derive(Eq)]
+#[derive(PartialEq, Eq)]
 struct Hangul {
     cho: Cho,
     jung: Jung,
