@@ -353,7 +353,7 @@ impl AheuiBlock {
                     a.next_pos(self.x, self.y, Flow::Right),
                     a.next_pos(self.x, self.y, Flow::Up),
                     a.next_pos(self.x, self.y, Flow::Down),
-                ).move_iter().map(|(nx, ny)| a.b.get_bb(nx, ny)).collect();
+                ).into_iter().map(|(nx, ny)| a.b.get_bb(nx, ny)).collect();
 
                 let r = a.load(a.fl, "aheui_flow_v");
                 let sw = unsafe {
@@ -595,7 +595,7 @@ impl Aheui {
                 ("\x00\x01\x03\x02", "fl2"),
                 ("\x01\x00\x03\x02", "fl3"),
             );
-            js.move_iter().map(|(j, n)| {
+            js.into_iter().map(|(j, n)| {
                 let jb = j.as_ptr() as *mut i8;
                 let l = j.len() as usize;
                 let n = CString::new(n).unwrap().as_ptr();
