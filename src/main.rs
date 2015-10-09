@@ -11,6 +11,7 @@ use std::io::BufReader;
 use std::path::Path;
 use std::fs::File;
 use std::boxed::Box;
+use std::ffi::CString;
 
 use libc::{c_uint, c_ulonglong};
 
@@ -187,37 +188,33 @@ impl AheuiBlock {
         unsafe { llvm::LLVMBuildStore(a.bld, comp_init, a.comp); }
 
         let cur = a.load(a.cur, "cur");
+
+        let str_ret = CString::new("ret").unwrap().as_ptr();
+        let str_cmp = CString::new("cmp").unwrap().as_ptr();
+
         match self.h.cho {
             cㄴ => {
                 let v1 = a.call_rt(a.rt.po, &[cur], "");
                 let v2 = a.call_rt(a.rt.po, &[cur], "");
-                let ret = "ret".with_c_str(|buf| {
-                    unsafe { llvm::LLVMBuildUDiv(a.bld, v2, v1, buf) }
-                });
+                let ret = unsafe { llvm::LLVMBuildUDiv(a.bld, v2, v1, str_ret) };
                 a.call_rt(a.rt.pu, &[cur, ret], "");
             },
             cㄷ => {
                 let v1 = a.call_rt(a.rt.po, &[cur], "");
                 let v2 = a.call_rt(a.rt.po, &[cur], "");
-                let ret = "ret".with_c_str(|buf| {
-                    unsafe { llvm::LLVMBuildAdd(a.bld, v1, v2, buf) }
-                });
+                let ret = unsafe { llvm::LLVMBuildAdd(a.bld, v1, v2, str_ret) };
                 a.call_rt(a.rt.pu, &[cur, ret], "");
             },
             cㄸ => {
                 let v1 = a.call_rt(a.rt.po, &[cur], "");
                 let v2 = a.call_rt(a.rt.po, &[cur], "");
-                let ret = "ret".with_c_str(|buf| {
-                    unsafe { llvm::LLVMBuildMul(a.bld, v1, v2, buf) }
-                });
+                let ret = unsafe { llvm::LLVMBuildMul(a.bld, v1, v2, str_ret) };
                 a.call_rt(a.rt.pu, &[cur, ret], "");
             },
             cㄹ => {
                 let v1 = a.call_rt(a.rt.po, &[cur], "");
                 let v2 = a.call_rt(a.rt.po, &[cur], "");
-                let ret = "ret".with_c_str(|buf| {
-                    unsafe { llvm::LLVMBuildURem(a.bld, v2, v1, buf) }
-                });
+                let ret = unsafe { llvm::LLVMBuildURem(a.bld, v2, v1, str_ret) };
                 a.call_rt(a.rt.pu, &[cur, ret], "");
             },
             cㅁ => {
@@ -265,23 +262,15 @@ impl AheuiBlock {
                 let v1 = a.call_rt(a.rt.po, &[cur], "");
                 let v2 = a.call_rt(a.rt.po, &[cur], "");
                 let op = IntULE as c_uint;
-                let cmp = "cmp".with_c_str(|buf| {
-                    unsafe { llvm::LLVMBuildICmp(a.bld, op, v1, v2, buf) }
-                });
-                let ret = "ret".with_c_str(|buf| {
-                    unsafe {
-                        llvm::LLVMBuildZExt(a.bld, cmp, a.ty.i32_ty, buf)
-                    }
-                });
+                let cmp = unsafe { llvm::LLVMBuildICmp(a.bld, op, v1, v2, str_cmp) };
+                let ret = unsafe { llvm::LLVMBuildZExt(a.bld, cmp, a.ty.i32_ty, str_ret) };
                 a.call_rt(a.rt.pu, &[cur, ret], "");
             },
             cㅊ => {
                 let v1 = a.call_rt(a.rt.po, &[cur], "");
                 let v2 = unsafe { llvm::LLVMConstInt(a.ty.i32_ty, 0, 0) };
                 let op = IntEQ as c_uint;
-                let cmp = "cmp".with_c_str(|buf| {
-                    unsafe { llvm::LLVMBuildICmp(a.bld, op, v1, v2, buf) }
-                });
+                let cmp = unsafe { llvm::LLVMBuildICmp(a.bld, op, v1, v2, str_cmp) };
                 unsafe {
                     llvm::LLVMBuildStore(a.bld, cmp, a.comp);
                 }
@@ -289,9 +278,7 @@ impl AheuiBlock {
             cㅌ => {
                 let v1 = a.call_rt(a.rt.po, &[cur], "");
                 let v2 = a.call_rt(a.rt.po, &[cur], "");
-                let ret = "ret".with_c_str(|buf| {
-                    unsafe { llvm::LLVMBuildSub(a.bld, v2, v1, buf) }
-                });
+                let ret = unsafe { llvm::LLVMBuildSub(a.bld, v2, v1, str_ret) };
                 a.call_rt(a.rt.pu, &[cur, ret], "");
             },
             cㅍ => {
@@ -352,14 +339,13 @@ impl AheuiBlock {
 
                 let v = a.load(a.fl, "aheui_flow_orig");
                 unsafe {
-                    "tmp".with_c_str(|b| {
-                        let z = 0 as c_ulonglong;
-                        let c0 = llvm::LLVMConstInt(a.ty.i8_ty, z, 0);
-                        let tmp = vec!(c0, v);
-                        let nv = llvm::LLVMBuildGEP(a.bld, j, tmp.as_ptr(), 2, b);
-                        let nv = a.load(nv, "aheui_flow_nv");
-                        llvm::LLVMBuildStore(a.bld, nv, a.fl);
-                    })
+                    let str_tmp = CString::new("tmp").unwrap().as_ptr();
+                    let z = 0 as c_ulonglong;
+                    let c0 = llvm::LLVMConstInt(a.ty.i8_ty, z, 0);
+                    let tmp = vec!(c0, v);
+                    let nv = llvm::LLVMBuildGEP(a.bld, j, tmp.as_ptr(), 2, str_tmp);
+                    let nv = a.load(nv, "aheui_flow_nv");
+                    llvm::LLVMBuildStore(a.bld, nv, a.fl);
                 }
 
                 let nps: Vec<_> = vec!(
@@ -436,9 +422,8 @@ struct Aheui {
 }
 
 fn new_var(bld: BuilderRef, v: u8, ty: TypeRef, name: &str) -> ValueRef {
-    let var = name.with_c_str(|buf| {
-        unsafe { llvm::LLVMBuildAlloca(bld, ty, buf) }
-    });
+    let name = CString::new(name).unwrap().as_ptr();
+    let var = unsafe { llvm::LLVMBuildAlloca(bld, ty, name) };
     unsafe {
         let c = llvm::LLVMConstInt(ty, v as c_ulonglong, 0);
         llvm::LLVMBuildStore(bld, c, var);
@@ -487,33 +472,28 @@ impl Aheui {
     }
 
     fn load(&self, val: ValueRef, name: &str) -> ValueRef {
-        name.with_c_str(|buf| {
-            unsafe { llvm::LLVMBuildLoad(self.bld, val, buf) }
-        })
+        let name = CString::new(name).unwrap().as_ptr();
+        unsafe { llvm::LLVMBuildLoad(self.bld, val, name) }
     }
 
     fn call_rt(&self, f: ValueRef, args: &[ValueRef], n: &str) -> ValueRef {
-        n.with_c_str(|buf| {
-            unsafe {
-                llvm::LLVMBuildCall(
-                    self.bld, f, args.as_ptr(),
-                    args.len() as libc::c_uint, buf
-                )
-            }
-        })
+        let n = CString::new(n).unwrap().as_ptr();
+        unsafe {
+            llvm::LLVMBuildCall(self.bld, f, args.as_ptr(), args.len() as libc::c_uint, n)
+        }
     }
 
     fn append_bb(cx: ContextRef, f: ValueRef, name: &str) -> BasicBlockRef {
-        name.with_c_str(|buf| {
-            unsafe { llvm::LLVMAppendBasicBlockInContext(cx, f, buf) }
-        })
+        let name = CString::new(name).unwrap().as_ptr();
+        unsafe { llvm::LLVMAppendBasicBlockInContext(cx, f, name) }
     }
 
     fn new(h: Vec<Vec<Hangul>>, md_name: &str, fn_name: &str) -> Aheui {
+        let md_name = CString::new(md_name).unwrap().as_ptr();
+        let fn_name = CString::new(fn_name).unwrap().as_ptr();
+
         let cx = unsafe { llvm::LLVMContextCreate() };
-        let md = md_name.with_c_str(|buf| {
-            unsafe { llvm::LLVMModuleCreateWithNameInContext(buf, cx) }
-        });
+        let md = unsafe { llvm::LLVMModuleCreateWithNameInContext(md_name, cx) };
         let bld = unsafe { llvm::LLVMCreateBuilderInContext(cx) };
 
         let i1_ty = unsafe { llvm::LLVMInt1TypeInContext(cx) };
@@ -521,10 +501,9 @@ impl Aheui {
         let i32_ty = unsafe { llvm::LLVMInt32TypeInContext(cx) };
         let void_ty = unsafe { llvm::LLVMVoidTypeInContext(cx) };
 
-        fn declare_fn(md: ModuleRef, n: &str, ty: TypeRef) -> ValueRef {
-            n.with_c_str(|buf| {
-                unsafe { llvm::LLVMGetOrInsertFunction(md, buf, ty) }
-            })
+        fn declare_fn(md: ModuleRef, name: &str, ty: TypeRef) -> ValueRef {
+            let name = CString::new(name).unwrap().as_ptr();
+            unsafe { llvm::LLVMGetOrInsertFunction(md, name, ty) }
         }
 
         fn fn_ty(rt: TypeRef, par: &[TypeRef]) -> TypeRef {
@@ -537,9 +516,7 @@ impl Aheui {
         }
 
         let main_ty = fn_ty(void_ty, []);
-        let mf = fn_name.with_c_str(|buf| {
-            unsafe { llvm::LLVMAddFunction(md, buf, main_ty) }
-        });
+        let mf = unsafe { llvm::LLVMAddFunction(md, fn_name, main_ty) };
 
         // declare runtime functions
         // extern "C" fn aheui_getchar() -> char
@@ -621,9 +598,10 @@ impl Aheui {
             js.move_iter().map(|(j, n)| {
                 let jb = j.as_ptr() as *mut i8;
                 let l = j.len() as usize;
-                let v = n.with_c_str(|n| {
+                let n = CString::new(n).unwrap().as_ptr();
+                let v = {
                     llvm::LLVMAddGlobal(md, i8_arr_ty, n)
-                });
+                };
                 llvm::LLVMSetGlobalConstant(v, True);
                 let c = llvm::LLVMConstStringInContext(cx, jb, l, True);
                 llvm::LLVMSetInitializer(v, c);
@@ -666,11 +644,10 @@ impl Aheui {
 
     fn print_module(&self, out_f: &str) {
         let cpm = unsafe { llvm::LLVMCreatePassManager() };
-        out_f.with_c_str(|buf| {
-            unsafe {
-                llvm::LLVMRustPrintModule(cpm, self.md, buf)
-            }
-        });
+        let out_f = CString::new(out_f).unwrap().as_ptr();
+        unsafe {
+            llvm::LLVMRustPrintModule(cpm, self.md, out_f)
+        }
     }
 }
 
