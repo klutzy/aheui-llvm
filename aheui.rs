@@ -6,6 +6,7 @@ extern crate libc;
 extern crate rustc;
 
 use std::io::BufReader;
+use std::path::Path;
 use std::fs::File;
 use std::boxed::Box;
 
@@ -133,7 +134,7 @@ struct AheuiBlock {
     cx: ContextRef,
     bld: BuilderRef,
     bb: BasicBlockRef,
-    name: StrBuf,
+    name: String,
 }
 
 impl AheuiBlock {
@@ -604,7 +605,7 @@ impl Aheui {
         }
 
         let fl = new_var(bld, Flow::Down as u8, i8_ty, "aheui_flow");
-        let cur = new_var(bld, joNone as u8, i8_ty, "aheui_cur");
+        let cur = new_var(bld, Jong::joNone as u8, i8_ty, "aheui_cur");
         let comp = new_var(bld, 0, i1_ty, "aheui_comp");
 
         let i8_arr_ty = unsafe { llvm::LLVMRustArrayType(i8_ty, 4) };
@@ -680,7 +681,7 @@ fn print_usage(prog: &str) {
 }
 
 fn main() {
-    let args: Vec<_> = std::os::args().move_iter().map(|i| i.to_strbuf()).collect();
+    let args: Vec<_> = std::env::args().move_iter().map(|i| i.to_strbuf()).collect();
 
     let opts = vec!(
         getopts::optopt("o", "", "", ""),
