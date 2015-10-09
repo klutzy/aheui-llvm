@@ -587,7 +587,7 @@ impl Aheui {
         for (y, line) in h.iter().enumerate() {
             let mut bl = Vec::new();
             for (x, hangul) in line.iter().enumerate() {
-                let block = box AheuiBlock::new(*hangul, x, y, cx, bld, mf);
+                let block = Box::new(AheuiBlock::new(*hangul, x, y, cx, bld, mf));
                 bl.push(block);
             }
             b.push(bl);
