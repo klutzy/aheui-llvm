@@ -2,3 +2,6 @@ target
 
 librt.dummy
 librt.rlib
+
+README.md.*
+hello
