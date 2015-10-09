@@ -515,44 +515,44 @@ impl Aheui {
             }
         }
 
-        let main_ty = fn_ty(void_ty, []);
+        let main_ty = fn_ty(void_ty, &[]);
         let mf = unsafe { llvm::LLVMAddFunction(md, fn_name, main_ty) };
 
         // declare runtime functions
         // extern "C" fn aheui_getchar() -> char
-        let gc_fn_ty = fn_ty(i32_ty, []);
+        let gc_fn_ty = fn_ty(i32_ty, &[]);
         let gc_fn = declare_fn(md, "aheui_getchar", gc_fn_ty);
 
         // extern "C" fn aheui_putchar(c: char)
-        let pc_fn_ty = fn_ty(void_ty, [i32_ty]);
+        let pc_fn_ty = fn_ty(void_ty, &[i32_ty]);
         let pc_fn = declare_fn(md, "aheui_putchar", pc_fn_ty);
 
         // extern "C" fn aheui_getint() -> i32
-        let gi_fn_ty = fn_ty(i32_ty, []);
+        let gi_fn_ty = fn_ty(i32_ty, &[]);
         let gi_fn = declare_fn(md, "aheui_getint", gi_fn_ty);
 
         // extern "C" fn aheui_putint(i: i32)
-        let pi_fn_ty = fn_ty(void_ty, [i32_ty]);
+        let pi_fn_ty = fn_ty(void_ty, &[i32_ty]);
         let pi_fn = declare_fn(md, "aheui_putint", pi_fn_ty);
 
         // extern "C" fn aheui_trace(x: i32, y: i32, c: char)
-        let tr_fn_ty = fn_ty(void_ty, [i32_ty, i32_ty, i32_ty]);
+        let tr_fn_ty = fn_ty(void_ty, &[i32_ty, i32_ty, i32_ty]);
         let tr_fn = declare_fn(md, "aheui_trace", tr_fn_ty);
 
         // extern "C" fn aheui_push(idx: i8, v: i32)
-        let pu_fn_ty = fn_ty(void_ty, [i8_ty, i32_ty]);
+        let pu_fn_ty = fn_ty(void_ty, &[i8_ty, i32_ty]);
         let pu_fn = declare_fn(md, "aheui_push", pu_fn_ty);
 
         // extern "C" fn aheui_pop(idx: i8) -> i32
-        let po_fn_ty = fn_ty(i32_ty, [i8_ty]);
+        let po_fn_ty = fn_ty(i32_ty, &[i8_ty]);
         let po_fn = declare_fn(md, "aheui_pop", po_fn_ty);
 
         // extern "C" fn aheui_dup(idx: i8)
-        let du_fn_ty = fn_ty(void_ty, [i8_ty]);
+        let du_fn_ty = fn_ty(void_ty, &[i8_ty]);
         let du_fn = declare_fn(md, "aheui_dup", du_fn_ty);
 
         // extern "C" fn aheui_swap(idx: i8)
-        let sw_fn_ty = fn_ty(void_ty, [i8_ty]);
+        let sw_fn_ty = fn_ty(void_ty, &[i8_ty]);
         let sw_fn = declare_fn(md, "aheui_swap", sw_fn_ty);
 
         let rt = AheuiRt {
@@ -597,7 +597,7 @@ impl Aheui {
             );
             js.into_iter().map(|(j, n)| {
                 let jb = j.as_ptr() as *mut i8;
-                let l = j.len() as usize;
+                let l = j.len() as u32;
                 let n = CString::new(n).unwrap().as_ptr();
                 let v = {
                     llvm::LLVMAddGlobal(md, i8_arr_ty, n)
