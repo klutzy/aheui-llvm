@@ -1,9 +1,11 @@
-#![feature(globs, non_ascii_idents)]
+#![feature(globs, non_ascii_idents, custom_derive, plugin)]
+#![plugin(num_macros)]
 #![allow(non_camel_case_types)]
 
 extern crate getopts;
 extern crate libc;
 extern crate rustc;
+extern crate num;
 
 use std::io::BufReader;
 use std::path::Path;
@@ -18,21 +20,21 @@ use rustc::lib::llvm::{IntULE, IntEQ};
 use rustc::lib::llvm::True;
 use rustc::lib::llvm;
 
-#[derive(Eq)]
+#[derive(Eq, NumFromPrimitive)]
 pub enum Cho {
     cㄱ, cㄲ, cㄴ, cㄷ, cㄸ, cㄹ, cㅁ, cㅂ,
     cㅃ, cㅅ, cㅆ, cㅇ, cㅈ, cㅉ, cㅊ, cㅋ,
     cㅌ, cㅍ, cㅎ, cNone
 }
 
-#[derive(Eq)]
+#[derive(Eq, NumFromPrimitive)]
 pub enum Jung {
     ㅏ, ㅐ, ㅑ, ㅒ, ㅓ, ㅔ, ㅕ, ㅖ,
     ㅗ, ㅘ, ㅙ, ㅚ, ㅛ, ㅜ, ㅝ, ㅞ,
     ㅟ, ㅠ, ㅡ, ㅢ, ㅣ, juNone
 }
 
-#[derive(Eq)]
+#[derive(Eq, NumFromPrimitive)]
 pub enum Jong {
     joNone,
     jㄱ, jㄲ, jㄳ, jㄴ, jㄵ, jㄶ, jㄷ, jㄹ,
@@ -119,9 +121,9 @@ impl Hangul {
         let jung = (u / 28) % 21;
         let jong = u % 28;
         Hangul {
-            cho: std::num::from_u32(cho).unwrap(),
-            jung: std::num::from_u32(jung).unwrap(),
-            jong: std::num::from_u32(jong).unwrap(),
+            cho:  num::FromPrimitive::from_u32(cho).unwrap(),
+            jung: num::FromPrimitive::from_u32(jung).unwrap(),
+            jong: num::FromPrimitive::from_u32(jong).unwrap(),
             c: c,
         }
     }
