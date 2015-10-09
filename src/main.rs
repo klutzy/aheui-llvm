@@ -387,7 +387,7 @@ type AheuiMapImpl = Vec<Vec<Box<AheuiBlock>>>;
 
 trait AheuiMap {
     fn get_bb(&self, x: usize, y: usize) -> BasicBlockRef;
-    fn get_hangul(&self, x: usize, y: usize) -> Hangul;
+    fn get_hangul<'a>(&'a self, x: usize, y: usize) -> &'a Hangul;
 }
 
 impl AheuiMap for AheuiMapImpl {
@@ -395,8 +395,8 @@ impl AheuiMap for AheuiMapImpl {
         self[y][x].bb
     }
 
-    fn get_hangul(&self, x: usize, y: usize) -> Hangul {
-        self[y][x].h
+    fn get_hangul<'a>(&'a self, x: usize, y: usize) -> &'a Hangul {
+        &self[y][x].h
     }
 }
 
@@ -570,10 +570,10 @@ impl Aheui {
         let main_bb = Aheui::append_bb(cx, mf, "aheui_top");
 
         let mut b = Vec::new();
-        for (y, line) in h.iter().enumerate() {
+        for (y, line) in h.into_iter().enumerate() {
             let mut bl = Vec::new();
-            for (x, hangul) in line.iter().enumerate() {
-                let block = Box::new(AheuiBlock::new(*hangul, x, y, cx, bld, mf));
+            for (x, hangul) in line.into_iter().enumerate() {
+                let block = Box::new(AheuiBlock::new(hangul, x, y, cx, bld, mf));
                 bl.push(block);
             }
             b.push(bl);
@@ -686,8 +686,7 @@ fn main() {
         return;
     };
 
-    let out_fn = in_fn.to_string();
-    out_fn.push_str(".ll");
+    let out_fn = in_fn.to_string() + ".ll";
     let out_fn = match matches.opt_str("o") {
         Some(o) => o,
         None => out_fn,
@@ -700,7 +699,7 @@ fn main() {
 
     let path = Path::new(in_fn);
     let mut reader = File::open(&path).unwrap();
-    let code = String::new();
+    let mut code = String::new();
     reader.read_to_string(&mut code).unwrap();
     let mut code_iter = code.lines().map(|line| {
         line.chars().map(Hangul::from_char).collect::<Vec<Hangul>>()
