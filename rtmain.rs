@@ -1,5 +1,3 @@
-#![feature(globs)]
-
 extern crate rt;
 use rt::*;
 
