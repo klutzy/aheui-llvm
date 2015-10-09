@@ -1,6 +1,5 @@
 #![crate_type = "lib"]
-#![crate_id = "rt"]
-#![feature(phase, rustc_private)]
+#![feature(rustc_private)]
 
 #[macro_use] extern crate log;
 
@@ -22,7 +21,7 @@ impl AheuiRt {
     }
 }
 
-thread_local!(static key_rt: RefCell<AheuiRt> = RefCell::new(AheuiRt::new()));
+thread_local!(static KEY_RT: RefCell<AheuiRt> = RefCell::new(AheuiRt::new()));
 
 #[no_mangle] #[inline(never)]
 pub extern "C" fn aheui_getchar() -> char {
@@ -67,7 +66,7 @@ pub extern "C" fn aheui_push(idx: i8, v: i32) {
     match idx {
         27 => panic!("Aheui extension is not supported."),
         _ => {
-            key_rt.with(|cell| {
+            KEY_RT.with(|cell| {
                 let mut ar = cell.borrow_mut();
                 ar.dqs[idx].push(v);
                 debug!("aheui_push: stack[{}]: {:?}", idx, ar.dqs[idx]);
@@ -80,7 +79,7 @@ pub extern "C" fn aheui_push(idx: i8, v: i32) {
 pub extern "C" fn aheui_pop(idx: i8) -> i32 {
     let idx = idx as usize;
 
-    key_rt.with(|cell| {
+    KEY_RT.with(|cell| {
         let mut ar = cell.borrow_mut();
         let ret = match idx {
             27 => panic!("Aheui extension is not supported."),
@@ -96,7 +95,7 @@ pub extern "C" fn aheui_pop(idx: i8) -> i32 {
 pub extern "C" fn aheui_dup(idx: i8) {
     let idx = idx as usize;
 
-    key_rt.with(|cell| {
+    KEY_RT.with(|cell| {
         let mut ar = cell.borrow_mut();
         match idx {
             27 => panic!("Aheui extension is not supported."),
@@ -120,7 +119,7 @@ pub extern "C" fn aheui_dup(idx: i8) {
 pub extern "C" fn aheui_swap(idx: i8) {
     let idx = idx as usize;
 
-    key_rt.with(|cell| {
+    KEY_RT.with(|cell| {
         let mut ar = cell.borrow_mut();
         match idx {
             27 => panic!("Aheui extension is not supported."),

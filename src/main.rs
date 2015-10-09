@@ -1,4 +1,4 @@
-#![feature(globs, non_ascii_idents, custom_derive, plugin, rustc_private, libc, convert)]
+#![feature(non_ascii_idents, custom_derive, plugin, rustc_private, libc, convert)]
 #![plugin(num_macros)]
 #![allow(non_camel_case_types)]
 
@@ -7,7 +7,6 @@ extern crate libc;
 extern crate rustc;
 extern crate num;
 
-use std::io::BufReader;
 use std::path::Path;
 use std::fs::File;
 use std::boxed::Box;
@@ -134,10 +133,8 @@ struct AheuiBlock {
     h: Hangul,
     x: usize,
     y: usize,
-    cx: ContextRef,
     bld: BuilderRef,
     bb: BasicBlockRef,
-    name: String,
 }
 
 impl AheuiBlock {
@@ -151,10 +148,8 @@ impl AheuiBlock {
             h: h,
             x: x,
             y: y,
-            cx: cx,
             bld: bld,
             bb: this_bb,
-            name: name,
         }
     }
 
@@ -404,14 +399,11 @@ struct Types {
     i1_ty: TypeRef,
     i8_ty: TypeRef,
     i32_ty: TypeRef,
-    void_ty: TypeRef,
 }
 
 struct Aheui {
     b: AheuiMapImpl,
-    cx: ContextRef,
     bld: BuilderRef,
-    mf: ValueRef,
     md: ModuleRef,
     rt: AheuiRt,
     fl: ValueRef,
@@ -448,7 +440,6 @@ impl Aheui {
                     let ly = y + 1;
                     let it = self.b.iter().enumerate().skip(ly);
                     let it = it.chain(self.b.iter().enumerate().take(ly));
-                    let mut it = it;
                     for (cur_y, line) in it {
                         if x < line.len() {
                             return (x, cur_y);
@@ -459,7 +450,6 @@ impl Aheui {
                     let ly = self.b.len() - y;
                     let it = self.b.iter().rev().enumerate().skip(ly);
                     let it = it.chain(self.b.iter().rev().enumerate().take(ly));
-                    let mut it = it;
                     for (cur_y, line) in it {
                         if x < line.len() {
                             return (x, self.b.len() - 1 - cur_y);
@@ -616,9 +606,7 @@ impl Aheui {
 
         Aheui {
             b: b,
-            cx: cx,
             bld: bld,
-            mf: mf,
             md: md,
             rt: rt,
             fl: fl,
@@ -629,7 +617,6 @@ impl Aheui {
                 i1_ty: i1_ty,
                 i8_ty: i8_ty,
                 i32_ty: i32_ty,
-                void_ty: void_ty,
             },
         }
     }
@@ -701,7 +688,7 @@ fn main() {
     let mut reader = File::open(&path).unwrap();
     let mut code = String::new();
     reader.read_to_string(&mut code).unwrap();
-    let mut code_iter = code.lines().map(|line| {
+    let code_iter = code.lines().map(|line| {
         line.chars().map(Hangul::from_char).collect::<Vec<Hangul>>()
     });
     let code = code_iter.collect();
