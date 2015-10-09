@@ -5,9 +5,9 @@ extern crate getopts;
 extern crate libc;
 extern crate rustc;
 
-use std::io::Reader;
-use std::io::fs::File;
-use std::owned::Box;
+use std::io::BufReader;
+use std::fs::File;
+use std::boxed::Box;
 
 use libc::{c_uint, c_ulonglong};
 
@@ -15,7 +15,7 @@ use rustc::lib::llvm::{ContextRef, BuilderRef, BasicBlockRef, ValueRef};
 use rustc::lib::llvm::{ModuleRef, TypeRef};
 use rustc::lib::llvm::{IntULE, IntEQ};
 use rustc::lib::llvm::True;
-use rustc::lib::llvm::llvm;
+use rustc::lib::llvm;
 
 #[derive(Eq, FromPrimitive)]
 pub enum Cho {
