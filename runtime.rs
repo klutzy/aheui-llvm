@@ -1,4 +1,3 @@
-#![crate_type = "lib"]
 #![feature(rustc_private)]
 
 #[macro_use] extern crate log;
@@ -146,6 +145,10 @@ pub extern "C" fn aheui_swap(idx: i8) {
     });
 }
 
-pub fn rt_init() {
-    // TODO: Remove rt_init
+extern "C" {
+    fn aheui_main();
+}
+
+fn main() {
+    unsafe { aheui_main(); }
 }
