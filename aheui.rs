@@ -139,7 +139,7 @@ impl AheuiBlock {
         h: Hangul, x: uint, y: uint, cx: ContextRef,
         bld: BuilderRef, main_fn: ValueRef
     ) -> AheuiBlock {
-        let name = format_strbuf!("aheui_bb_{:u}_{:u}", x, y);
+        let name = format!("aheui_bb_{}_{}", x, y);
         let this_bb = Aheui::append_bb(cx, main_fn, name.as_slice());
         AheuiBlock {
             h: h,
