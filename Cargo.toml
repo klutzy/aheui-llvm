@@ -1,0 +1,11 @@
+[package]
+name = "aheui"
+version = "0.1.0"
+authors = [
+  "klutzy <klutzytheklutzy@gmail.com>",
+  "Hyeon Kim <simnalamburt@gmail.com>"
+]
+
+[dependencies]
+num = "0.1"
+num-macros = "0.1"
