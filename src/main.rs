@@ -700,6 +700,9 @@ fn main() {
 
 #[test]
 fn test_hangul() {
+    use Cho::*;
+    use Jung::*;
+    use Jong::*;
     let 가 = Hangul { cho: cㄱ, jung: ㅏ, jong: joNone, c: '가' };
     assert!(Hangul::from_char('가') == 가);
 
@@ -715,6 +718,7 @@ fn test_hangul() {
 
 #[test]
 fn test_jong() {
+    use Jong::*;
     assert!(joNone.val() == 0);
     assert!(jㄱ.val() == 2);
     assert!(jㄿ.val() == 9);
@@ -727,7 +731,7 @@ fn test_next_pos() {
         "아희아희",
         "아희희",
     );
-    let map: Vec<_> = map.move_iter().map(|x| {
+    let map: Vec<_> = map.iter().map(|x| {
         x.chars().map(Hangul::from_char).collect::<Vec<Hangul>>()
     }).collect();
     let map = Aheui::new(map, "dummy", "dummy_main");
